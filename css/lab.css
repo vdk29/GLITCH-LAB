@@ -156,3 +156,52 @@
   .mission3d-panel p{font-size:8px;line-height:1.4}
   .auto-build-button{font-size:8px}
 }
+
+
+/* Touch-following component token */
+.dragging-component-ghost{
+  position:fixed;z-index:9999;left:0;top:0;pointer-events:none;transform:translate(-50%,-52%) scale(1.04) rotate(-2deg);
+  display:flex;align-items:center;gap:10px;padding:9px 12px;min-height:58px;border:1px solid #c9c4f5;border-radius:16px;
+  background:rgba(255,255,255,.94);box-shadow:0 18px 45px rgba(93,79,163,.24),0 0 0 5px rgba(225,220,255,.48);
+  backdrop-filter:blur(12px);opacity:.98;transition:box-shadow .12s,transform .12s;will-change:left,top; 
+}
+.dragging-component-ghost .pick-art{flex:0 0 42px;height:40px}
+.dragging-component-ghost .pick-plus{display:none}
+.dragging-component-ghost.is-dragging{transform:translate(-50%,-58%) scale(1.08) rotate(2deg);box-shadow:0 24px 55px rgba(93,79,163,.3),0 0 0 7px rgba(225,220,255,.58)}
+.dragging-component-ghost .pick-text strong{font-size:12px}
+.dragging-component-ghost .pick-text small{font-size:9px}
+.lab3d-layout.immersive{
+  position:fixed;inset:10px;z-index:1000;width:auto;max-width:none;margin:0;padding:0;
+  display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;overflow:hidden;
+  background:#f6f7fc;border:1px solid #e5e8f2;border-radius:22px;box-shadow:0 24px 90px rgba(47,55,91,.24);
+}
+.lab3d-layout.immersive .scene-panel{height:100%;min-height:0;display:flex;flex-direction:column;border-radius:18px}
+.lab3d-layout.immersive .scene-viewport{flex:1;min-height:0;height:auto}
+.lab3d-layout.immersive .lab3d-sidebar{height:100%;overflow:auto;align-content:start;padding-right:2px}
+.lab3d-layout.immersive .scene-actionbar{flex-shrink:0}
+.lab-immersive-open{overflow:hidden}
+@media(max-width:700px){
+  .lab3d-layout.immersive{inset:5px;grid-template-columns:minmax(0,1fr) 160px;gap:6px;border-radius:15px}
+  .lab3d-layout.immersive .scene-topbar{height:50px;padding:0 8px}
+  .lab3d-layout.immersive .scene-title small,.lab3d-layout.immersive .scene-tool span{display:none}
+  .lab3d-layout.immersive .scene-tools{gap:3px}
+  .lab3d-layout.immersive .scene-tool{padding:7px 8px}
+  .lab3d-layout.immersive .scene-viewport{height:auto;min-height:0}
+  .lab3d-layout.immersive .scene-actionbar{padding:7px;gap:5px}
+  .lab3d-layout.immersive .scene-counter{display:none}
+  .lab3d-layout.immersive .scene-main-actions{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .lab3d-layout.immersive .scene-main-actions .primary{grid-column:1/-1;grid-row:1}
+  .lab3d-layout.immersive .scene-button{font-size:8px;min-height:32px;padding:0 5px}
+  .lab3d-layout.immersive .toolbox-panel,.lab3d-layout.immersive .settings-panel,.lab3d-layout.immersive .mission3d-panel{padding:8px}
+  .lab3d-layout.immersive .toolbox-intro,.lab3d-layout.immersive .pick-text small,.lab3d-layout.immersive .mission3d-panel{display:none}
+  .lab3d-layout.immersive .component-pick{min-height:49px;padding:5px;gap:5px}
+  .lab3d-layout.immersive .pick-art{flex-basis:25px;height:29px}
+  .lab3d-layout.immersive .pick-text strong{font-size:9px}
+  .lab3d-layout.immersive .pick-plus{display:none}
+  .lab3d-layout.immersive .mini-metrics{grid-template-columns:1fr}
+}
+@media(max-width:380px){
+  .lab3d-layout.immersive{grid-template-columns:minmax(0,1fr) 132px}
+  .lab3d-layout.immersive .sidebar-kicker{font-size:6px}
+  .lab3d-layout.immersive .toolbox-heading h2{font-size:12px}
+}

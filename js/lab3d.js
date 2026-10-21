@@ -317,13 +317,13 @@ function getCanvasPoint(event) {
   raycaster.setFromCamera(pointer, camera);
   return rect;
 }
-function hitBoard(event) {
+function hitBoard(event, shouldSnap = true) {
   getCanvasPoint(event);
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.14);
   const hit = new THREE.Vector3();
   if (!raycaster.ray.intersectPlane(floor, hit)) return null;
   if (Math.abs(hit.x) > 5.35 || Math.abs(hit.z) > 3.35) return null;
-  return { x: snap(hit.x), z: snap(hit.z) };
+  return { x: shouldSnap ? snap(hit.x) : hit.x, z: shouldSnap ? snap(hit.z) : hit.z };
 }
 function terminalWorldPosition(part, terminalId) {
   const object = componentObjects.get(part.id);
@@ -412,7 +412,7 @@ function bindUI() {
       if (root) root.scale.setScalar(1.06);
     }
     if (draggingPartId) {
-      const position = hitBoard(event);
+      const position = hitBoard(event, false);
       const part = parts.find((item) => item.id === draggingPartId);
       const root = componentObjects.get(draggingPartId);
       if (!position || !part || !root) return;
@@ -446,7 +446,7 @@ function bindUI() {
     if (!node?.userData.partId) return;
     const part = parts.find((item) => item.id === node.userData.partId);
     if (!part) return;
-    const position = hitBoard(event);
+    const position = hitBoard(event, false);
     if (!position) return;
     dragCandidate = { id: part.id, startX: event.clientX, startY: event.clientY, offsetX: part.x - position.x, offsetZ: part.z - position.z };
   });
@@ -458,7 +458,7 @@ function bindUI() {
     }
     if (draggingPartId) {
       const part = parts.find((item) => item.id === draggingPartId);
-      const position = hitBoard(event);
+      const position = hitBoard(event, false);
       if (part && position) {
         part.x = THREE.MathUtils.clamp(snap(position.x + dragOffset.x), -5.0, 5.0);
         part.z = THREE.MathUtils.clamp(snap(position.z + dragOffset.z), -2.85, 2.85);

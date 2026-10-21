@@ -16,6 +16,7 @@
   let resistorOhms = 220;
   let wires = [];
   let solved = false;
+  let currentFlow = false;
   let parts = [
     { id: "battery", type: "battery", title: "Батарейка 5 В", subtitle: "Источник постоянного напряжения", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] }
   ];
@@ -96,6 +97,7 @@
       return;
     }
     const definition = types[type];
+    currentFlow = false;
     parts.push({
       id: type + "-" + nextId++,
       type,
@@ -218,6 +220,7 @@
       render();
       return;
     }
+    currentFlow = false;
     wires.push({ a: selectedTerminal, b: key });
     selectedTerminal = null;
     saveCircuit();
@@ -227,6 +230,7 @@
   }
 
   function removePart(id) {
+    currentFlow = false;
     parts = parts.filter((part) => part.id !== id);
     wires = wires.filter((wire) => !wire.a.startsWith(id + ":") && !wire.b.startsWith(id + ":"));
     selectedTerminal = null;
@@ -280,7 +284,7 @@
       });
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", wireD);
-      path.setAttribute("class", "wire-path" + (wires.indexOf(wire) % 2 ? " wire-blue" : ""));
+      path.setAttribute("class", "wire-path" + (wires.indexOf(wire) % 2 ? " wire-blue" : "") + (currentFlow ? " wire-current" : ""));
       wireLayer.append(hitPath, path);
     });
   }
@@ -325,6 +329,7 @@
   }
 
   function simulate() {
+    currentFlow = false;
     parts.forEach((part) => { part.lit = false; });
     const ledParts = parts.filter((part) => part.type === "led");
     const resistorParts = parts.filter((part) => part.type === "resistor");
@@ -371,6 +376,7 @@
       return;
     }
     pathLed.lit = true;
+    currentFlow = true;
     render();
     if (!solved) {
       solved = true;
@@ -413,6 +419,7 @@
     showResult("", "Сопротивление изменено", "Каждый резистор теперь имеет номинал " + resistorOhms + " Ω. Чем выше сопротивление, тем меньше ток при том же напряжении.");
   });
   $("clearWiresButton").addEventListener("click", () => {
+    currentFlow = false;
     wires = [];
     selectedTerminal = null;
     saveCircuit();
@@ -422,6 +429,7 @@
     showResult("", "Провода убраны", "Компоненты остались на плате. Соедини их заново.");
   });
   $("resetButton").addEventListener("click", () => {
+    currentFlow = false;
     batteryVoltage = 5;
     resistorOhms = 220;
     parts = [{ id: "battery", type: "battery", title: "Батарейка 5 В", subtitle: "Источник постоянного напряжения", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] }];
@@ -434,6 +442,46 @@
     render();
     showResult("", "Схема сброшена", "Добавь резистор и светодиод, затем собери свою первую цепь.");
   });
+
+  function loadPreset(reverseLed) {
+    currentFlow = false;
+    batteryVoltage = 5;
+    resistorOhms = 220;
+    const resistor = { id: "resistor-1", type: "resistor", title: types.resistor.title, subtitle: types.resistor.subtitle, terminals: types.resistor.terminals.map((terminal) => ({ ...terminal })) };
+    const led = { id: "led-2", type: "led", title: types.led.title, subtitle: types.led.subtitle, terminals: types.led.terminals.map((terminal) => ({ ...terminal })) };
+    parts = [
+      { id: "battery", type: "battery", title: "Батарейка 5 В", subtitle: "Источник постоянного напряжения", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] },
+      resistor,
+      led
+    ];
+    nextId = 3;
+    const resistorIn = terminalKey(resistor.id, "a");
+    const resistorOut = terminalKey(resistor.id, "b");
+    const ledAnode = terminalKey(led.id, "a");
+    const ledCathode = terminalKey(led.id, "k");
+    wires = reverseLed
+      ? [
+          { a: "battery:plus", b: resistorIn },
+          { a: resistorOut, b: ledCathode },
+          { a: ledAnode, b: "battery:minus" }
+        ]
+      : [
+          { a: "battery:plus", b: resistorIn },
+          { a: resistorOut, b: ledAnode },
+          { a: ledCathode, b: "battery:minus" }
+        ];
+    selectedTerminal = null;
+    solved = false;
+    saveCircuit();
+    render();
+    hint.textContent = "Пример собран. Нажми «Запустить симуляцию» и посмотри на результат.";
+    showResult("", reverseLed ? "Учебная ошибка установлена" : "Готово к запуску", reverseLed
+      ? "Светодиод подключён наоборот. Запусти симуляцию и попробуй найти причину."
+      : "Цепь собрана автоматически: батарейка → резистор → светодиод → батарейка. Запусти симуляцию.");
+  }
+
+  $("workingPresetButton").addEventListener("click", () => loadPreset(false));
+  $("errorPresetButton").addEventListener("click", () => loadPreset(true));
 
   const wireHelp = $("connectionHint");
   if (wireHelp) wireHelp.textContent = "Нажми на контакт, затем на контакт другой детали. Чтобы удалить провод, нажми на сам провод.";

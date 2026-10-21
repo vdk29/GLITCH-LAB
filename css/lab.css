@@ -41,8 +41,9 @@
 .board-component.switch-closed .glyph-switch:after{transform:rotate(0deg)}
 .component-remove{position:absolute;right:5px;top:5px;border:0;background:#f1f4f8;color:#8590a1;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:14px}
 .wire-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;overflow:visible}
-.wire-layer path{fill:none;stroke:#e87972;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px #ffffff90)}
-.wire-layer path:nth-of-type(even){stroke:#6f8fe8}
+.wire-layer .wire-path{fill:none;stroke:#e87972;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 1px #ffffff90);pointer-events:none}
+.wire-layer .wire-path.wire-blue{stroke:#6f8fe8}
+.wire-layer .wire-hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:pointer;touch-action:manipulation}
 .board-legend{display:flex;gap:14px;flex-wrap:wrap;margin:13px 0 18px;color:#818da0;font-size:10px}
 .board-legend span{display:flex;align-items:center;gap:6px}.legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%}.dot-red{background:#e87972}.dot-blue{background:#6f8fe8}.dot-wire{height:3px;width:15px;border-radius:3px;background:#e87972}
 .workspace-actions{display:flex;gap:10px;flex-wrap:wrap}.workspace-actions .btn{min-height:43px;display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;border-radius:12px;padding:0 17px;font-weight:750;font-size:12px;cursor:pointer;text-decoration:none}.workspace-actions .btn-primary{background:#718fe8;color:white;box-shadow:0 5px 12px #718fe82e}.workspace-actions .btn-secondary{background:#f1f4fa;color:#66738a}
@@ -60,8 +61,7 @@
 @media(max-width:650px){.lab-container{width:calc(100% - 24px);padding-top:20px}.topbar{padding-left:12px;padding-right:12px}.header-nav{display:none}.lab-intro{gap:16px;margin-bottom:18px}.lab-intro h1{font-size:32px}.lab-intro p{font-size:13px}.workspace,.parts-panel,.mission-panel{padding:14px;border-radius:17px}.workspace-heading h2,.panel h2{font-size:18px}.board{padding:35px 10px 20px;min-height:340px}.board-center{min-height:270px}.component-grid{gap:8px}.board-component{padding:8px 5px}.terminal{width:30px;height:30px}.board-legend{gap:9px}.board-legend span{font-size:9px}.lab-sidebar{grid-template-columns:1fr}.workspace-actions .btn{flex:1;padding:0 10px;font-size:11px}.lab-footer{flex-direction:column;gap:6px}.lab-level-card{padding:12px}}
 
 /* Circuit controls and persistent workspace */
-.wire-layer path{pointer-events:stroke;cursor:pointer;touch-action:manipulation}
-.wire-layer path:hover,.wire-layer path:focus{stroke:#e4a34e;stroke-width:6;outline:none}
+.wire-layer .wire-hit:hover + .wire-path,.wire-layer .wire-hit:focus + .wire-path{stroke:#e4a34e;stroke-width:6;outline:none}
 .save-note{display:flex;align-items:center;gap:7px;margin:10px 2px 0;color:#8a96a8;font-size:10px}
 .save-note span{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#e7f7ee;color:#439b72;font-weight:900}
 .circuit-settings{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:15px 0 0;padding:12px;background:#f8faff;border:1px solid #edf1f8;border-radius:13px}

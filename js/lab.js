@@ -9,6 +9,7 @@
   const resultBox = $("simulationResult");
   const hint = $("connectionHint");
 
+  const CIRCUIT_STORAGE_KEY = "glitchLabSavedCircuit";
   let nextId = 1;
   let selectedTerminal = null;
   let wires = [];
@@ -24,6 +25,60 @@
   };
 
   function terminalKey(partId, terminalId) { return partId + ":" + terminalId; }
+
+  function saveCircuit() {
+    try {
+      localStorage.setItem(CIRCUIT_STORAGE_KEY, JSON.stringify({
+        nextId,
+        parts: parts.map((part) => ({ id: part.id, type: part.type, closed: Boolean(part.closed) })),
+        wires
+      }));
+    } catch (error) {
+      console.warn("GLITCH LAB: не удалось сохранить схему.", error);
+    }
+  }
+
+  function restoreCircuit() {
+    try {
+      const raw = localStorage.getItem(CIRCUIT_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (!saved || !Array.isArray(saved.parts) || !Array.isArray(saved.wires)) return;
+
+      const restoredParts = [{
+        id: "battery",
+        type: "battery",
+        title: "Батарейка 5 В",
+        terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }]
+      }];
+
+      saved.parts.forEach((item) => {
+        if (!item || item.id === "battery" || !types[item.type]) return;
+        const definition = types[item.type];
+        if (restoredParts.filter((part) => part.type === item.type).length >= 4) return;
+        restoredParts.push({
+          id: String(item.id),
+          type: item.type,
+          title: definition.title,
+          subtitle: definition.subtitle,
+          terminals: definition.terminals.map((terminal) => ({ ...terminal })),
+          closed: Boolean(item.closed)
+        });
+      });
+
+      const validKeys = new Set(restoredParts.flatMap((part) => part.terminals.map((terminal) => terminalKey(part.id, terminal.id))));
+      const restoredWires = saved.wires.filter((wire) =>
+        wire && validKeys.has(wire.a) && validKeys.has(wire.b) &&
+        wire.a.split(":")[0] !== wire.b.split(":")[0]
+      ).map((wire) => ({ a: wire.a, b: wire.b }));
+
+      parts = restoredParts;
+      wires = restoredWires;
+      nextId = Math.max(Number(saved.nextId) || 1, 1);
+    } catch (error) {
+      console.warn("GLITCH LAB: сохранённая схема повреждена, начинаем заново.", error);
+    }
+  }
   function getPart(id) { return parts.find((part) => part.id === id); }
   function countText(n) { return n + " " + (n === 1 ? "деталь" : n < 5 ? "детали" : "деталей"); }
 
@@ -42,6 +97,7 @@
       terminals: definition.terminals.map((terminal) => ({ ...terminal })),
       closed: false
     });
+    saveCircuit();
     render();
     showResult("", "Компонент добавлен", definition.title + " появился на плате. Теперь соедини его контакты проводами.");
   }
@@ -96,6 +152,7 @@
         toggle.addEventListener("click", () => {
           part.closed = !part.closed;
           part.lit = false;
+          saveCircuit();
           render();
           showResult("", part.closed ? "Выключатель замкнут" : "Выключатель разомкнут", part.closed ? "Теперь контакты выключателя могут проводить ток." : "Цепь через выключатель разорвана.");
         });
@@ -148,6 +205,7 @@
     }
     wires.push({ a: selectedTerminal, b: key });
     selectedTerminal = null;
+    saveCircuit();
     hint.textContent = "Провод добавлен. Можно соединять следующие контакты или запустить симуляцию.";
     render();
     showResult("", "Провод подключён", "Проверь схему: каждый контакт должен вести к нужной части цепи.");
@@ -157,6 +215,7 @@
     parts = parts.filter((part) => part.id !== id);
     wires = wires.filter((wire) => !wire.a.startsWith(id + ":") && !wire.b.startsWith(id + ":"));
     selectedTerminal = null;
+    saveCircuit();
     render();
     showResult("", "Компонент удалён", "Провода, подключённые к этой детали, тоже удалены.");
   }
@@ -183,6 +242,26 @@
       const midY = Math.max(12, Math.min(rect.height - 12, (y1 + y2) / 2 - 12));
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", "M " + x1 + " " + y1 + " C " + x1 + " " + midY + ", " + x2 + " " + midY + ", " + x2 + " " + y2);
+      path.setAttribute("class", "wire-path");
+      path.setAttribute("tabindex", "0");
+      path.setAttribute("role", "button");
+      path.setAttribute("aria-label", "Удалить провод");
+      path.setAttribute("title", "Нажми, чтобы удалить этот провод");
+      path.addEventListener("click", (event) => {
+        event.stopPropagation();
+        wires = wires.filter((item) => item !== wire);
+        selectedTerminal = null;
+        parts.forEach((part) => { part.lit = false; });
+        saveCircuit();
+        render();
+        showResult("", "Провод удалён", "Соедини эти контакты снова, если он нужен для схемы.");
+      });
+      path.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          path.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        }
+      });
       wireLayer.appendChild(path);
     });
   }
@@ -294,6 +373,7 @@
   $("clearWiresButton").addEventListener("click", () => {
     wires = [];
     selectedTerminal = null;
+    saveCircuit();
     hint.textContent = "Все провода убраны. Начни соединять контакты заново.";
     parts.forEach((part) => { part.lit = false; });
     render();
@@ -305,6 +385,7 @@
     wires = [];
     selectedTerminal = null;
     solved = false;
+    saveCircuit();
     hint.textContent = "Нажми на контакт детали, затем на второй контакт, чтобы соединить их.";
     render();
     showResult("", "Схема сброшена", "Добавь резистор и светодиод, затем собери свою первую цепь.");
@@ -312,5 +393,6 @@
 
   window.addEventListener("resize", drawWires);
   window.addEventListener("load", drawWires);
+  restoreCircuit();
   render();
 })();

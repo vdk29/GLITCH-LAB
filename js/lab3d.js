@@ -496,6 +496,7 @@ function bindUI() {
     dragCandidate = { id: part.id, startX: event.clientX, startY: event.clientY, offsetX: part.x - position.x, offsetZ: part.z - position.z };
   });
   canvas.addEventListener("pointerup", (event) => {
+    if (palettePointer) return;
     if (placementType) {
       placePending(event);
       pointerDown = null; dragCandidate = null;

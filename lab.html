@@ -2,16 +2,25 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f8f9fc">
-  <title>Лаборатория — GLITCH LAB</title>
-  <meta name="description" content="Собирай электронные схемы, соединяй контакты и изучай, как работает электрическая цепь.">
-  <link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/home.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc">
+  <title>3D-лаборатория — GLITCH LAB</title>
+  <meta name="description" content="Интерактивная 3D-лаборатория электроники: расставляй детали, соединяй контакты и запускай схемы.">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/home.css">
   <link rel="stylesheet" href="css/lab.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      }
+    }
+  </script>
   <script src="js/app.js" defer></script>
-  <script src="js/lab.js" defer></script>
+  <script type="module" src="js/lab3d.js"></script>
 </head>
-<body>
+<body class="lab3d-body">
   <header class="topbar">
     <a class="brand" href="index.html" aria-label="GLITCH LAB — главная">
       <span class="brand-mark">g.</span>
@@ -26,91 +35,93 @@
     <a class="lab-back-link" href="index.html">← На главную</a>
   </header>
 
-  <main class="lab-container">
-    <section class="lab-intro">
+  <main class="lab3d-container">
+    <section class="lab3d-heading">
       <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span> ПРАКТИКА · УРОВЕНЬ 01</div>
-        <h1>Твоя первая <span>электрическая цепь</span></h1>
-        <p>Добавляй детали на плату, соединяй контакты проводами и запускай симуляцию. Ошибки — часть обучения.</p>
+        <div class="lab3d-eyebrow"><span></span> INTERACTIVE ELECTRONICS · 3D WORKBENCH</div>
+        <h1>Собери это <em>в реальности.</em></h1>
+        <p>Перетаскивай детали на плату, соединяй ножки и смотри, как оживает твоя схема.</p>
       </div>
-      <div class="lab-level-card"><span class="lab-level-icon">01</span><div><strong>Инженерная мастерская</strong><small>Эксперимент № 1 · Светодиод</small></div></div>
+      <div class="lab3d-status"><i id="engineStatusDot"></i><span id="engineStatus">Подготавливаем мастерскую…</span></div>
     </section>
 
-    <div class="lab-layout">
-      <section class="workspace panel">
-        <div class="workspace-heading">
-          <div><span class="section-kicker">РАБОЧАЯ ОБЛАСТЬ</span><h2>Макетная плата</h2></div>
-          <button type="button" class="text-button" id="resetButton">Сбросить схему</button>
-        </div>
-        <div class="board-help"><span class="help-dot"></span><span id="connectionHint">Нажми на контакт, затем на контакт другой детали. Чтобы удалить провод, нажми на сам провод.</span></div>
-        <div class="board" id="board" aria-label="Макетная плата с электронными компонентами">
-          <div class="board-rail rail-positive"><span>+</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="board-rail rail-negative"><span>−</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="board-center">
-            <div class="board-mark">GLITCH LAB <small>EXPERIMENT BOARD</small></div>
-            <div class="component-grid" id="componentGrid"></div>
+    <div class="lab3d-layout">
+      <section class="scene-panel">
+        <div class="scene-topbar">
+          <div class="scene-title"><span class="scene-live-dot"></span><div><strong>Рабочий стол</strong><small>3D · свободный обзор</small></div></div>
+          <div class="scene-tools">
+            <button type="button" class="scene-tool" id="viewResetButton" title="Вернуть исходный ракурс">↗ <span>Ракурс</span></button>
+            <button type="button" class="scene-tool" id="gridToggleButton" aria-pressed="true">▦ <span>Сетка</span></button>
           </div>
-          <svg class="wire-layer" id="wireLayer" role="group" aria-label="Провода. Нажми на провод, чтобы удалить его."></svg>
         </div>
-        <div class="board-legend"><span><i class="legend-dot dot-red"></i> Положительный контакт</span><span><i class="legend-dot dot-blue"></i> Отрицательный / второй контакт</span><span><i class="legend-dot dot-wire"></i> Провод</span></div>
-        <div class="workspace-actions">
-          <button type="button" class="btn btn-primary" id="simulateButton"><span aria-hidden="true">▶</span> Запустить симуляцию</button>
-          <button type="button" class="btn btn-secondary" id="clearWiresButton">Убрать провода</button>
+        <div class="scene-viewport" id="sceneViewport">
+          <canvas id="circuitCanvas" aria-label="Интерактивная 3D-макетная плата. Перетащи деталь сюда, чтобы установить её."></canvas>
+          <div class="scene-loading" id="sceneLoading"><div class="loading-orbit"><i></i><i></i><i></i></div><strong>Готовим лабораторию</strong><small>Собираем плату и инструменты</small></div>
+          <div class="scene-drop-hint" id="sceneDropHint"><span>＋</span><strong>Отпусти, чтобы установить</strong></div>
+          <div class="scene-hud scene-hud-left"><span class="hud-key">DRAG</span> Перетаскивай детали</div>
+          <div class="scene-hud scene-hud-right"><span class="hud-key">ORBIT</span> Вращай двумя пальцами или мышью</div>
+          <div class="scene-bottom-note"><span class="note-spark">✦</span><span id="sceneHint">Выбери деталь справа и перетащи её на плату</span></div>
         </div>
-        <p class="save-note"><span>✓</span> Схема автоматически сохраняется на этом устройстве</p>
-        <div class="simulation-result" id="simulationResult" role="status" aria-live="polite">
-          <span class="result-icon">i</span><div><strong>Схема пока не запущена</strong><p>Собери цепь и проверь, загорится ли светодиод.</p></div>
+        <div class="scene-actionbar">
+          <div class="scene-counter"><span>Установлено</span><strong id="placedCount">0 деталей</strong></div>
+          <div class="scene-main-actions">
+            <button type="button" class="scene-button secondary" id="clearWires3dButton">Убрать провода</button>
+            <button type="button" class="scene-button secondary" id="reset3dButton">Сбросить</button>
+            <button type="button" class="scene-button primary" id="simulate3dButton"><span>▶</span> Запустить схему</button>
+          </div>
         </div>
       </section>
 
-      <aside class="lab-sidebar">
-        <section class="panel parts-panel">
-          <div class="panel-heading"><div><span class="section-kicker">ИНСТРУМЕНТЫ</span><h2>Компоненты</h2></div><span class="part-count" id="partCount">1 деталь</span></div>
-          <p class="panel-description">Нажми на компонент, чтобы добавить его на плату.</p>
-          <div class="circuit-settings">
-            <label><span>Напряжение источника</span><select id="batteryVoltageControl"><option value="3">3 В</option><option value="5" selected>5 В</option><option value="9">9 В</option></select></label>
-            <label><span>Сопротивление резистора</span><select id="resistorValueControl"><option value="100">100 Ω</option><option value="220" selected>220 Ω</option><option value="330">330 Ω</option><option value="1000">1 кΩ</option></select></label>
-          </div>
-          <p class="settings-hint">Меняй параметры и наблюдай, как они влияют на ток в цепи.</p>
-          <div class="parts-list">
-            <button class="part-option" type="button" data-add="resistor">
-              <span class="part-illustration resistor-illustration"><i></i><b></b><i></i></span>
-              <span class="part-copy"><strong>Резистор</strong><small>Ограничивает ток</small></span><span class="part-add">+</span>
+      <aside class="lab3d-sidebar">
+        <section class="toolbox-panel">
+          <div class="toolbox-heading"><div><span class="sidebar-kicker">КАТАЛОГ ДЕТАЛЕЙ</span><h2>Компоненты</h2></div><span class="toolbox-count">01 / LAB</span></div>
+          <p class="toolbox-intro">Зажми деталь и перенеси на плату. Или нажми на неё, а затем выбери место на плате.</p>
+          <div class="component-shelf">
+            <button class="component-pick" type="button" data-place="led">
+              <span class="pick-art led-art"><i></i><b></b><em></em></span><span class="pick-text"><strong>Светодиод</strong><small>Свет · полярность</small></span><span class="pick-plus">＋</span>
             </button>
-            <button class="part-option" type="button" data-add="led">
-              <span class="part-illustration led-illustration"><i></i></span>
-              <span class="part-copy"><strong>Светодиод</strong><small>У него есть полярность</small></span><span class="part-add">+</span>
+            <button class="component-pick" type="button" data-place="resistor">
+              <span class="pick-art resistor-art"><i></i><b></b><em></em></span><span class="pick-text"><strong>Резистор</strong><small>Ограничивает ток</small></span><span class="pick-plus">＋</span>
             </button>
-            <button class="part-option" type="button" data-add="switch">
-              <span class="part-illustration switch-illustration"><i></i><b></b></span>
-              <span class="part-copy"><strong>Выключатель</strong><small>Размыкает и замыкает цепь</small></span><span class="part-add">+</span>
+            <button class="component-pick" type="button" data-place="battery">
+              <span class="pick-art battery-art"><i>＋</i><b>−</b></span><span class="pick-text"><strong>Батарейка</strong><small>Источник питания · 5 В</small></span><span class="pick-plus">＋</span>
+            </button>
+            <button class="component-pick" type="button" data-place="switch">
+              <span class="pick-art switch-art"><i></i><b></b></span><span class="pick-text"><strong>Выключатель</strong><small>Размыкает цепь</small></span><span class="pick-plus">＋</span>
+            </button>
+            <button class="component-pick" type="button" data-place="capacitor">
+              <span class="pick-art capacitor-art"><i></i><b></b></span><span class="pick-text"><strong>Конденсатор</strong><small>Накопление заряда · учебный</small></span><span class="pick-plus">＋</span>
             </button>
           </div>
-          <div class="battery-card">
-            <div class="battery-symbol">＋<span>−</span></div>
-            <div><strong id="batteryTitle">Батарейка 5 В</strong><small>Источник постоянного напряжения</small></div><span class="fixed-tag">В цепи</span>
+          <div class="selected-part-panel" id="selectedPartPanel">
+            <div class="selected-empty-icon">↖</div><div><strong id="selectedPartTitle">Ничего не выбрано</strong><p id="selectedPartDescription">Нажми на установленную деталь, чтобы повернуть или удалить её.</p></div>
+          </div>
+          <div class="selected-actions" id="selectedActions" hidden>
+            <button type="button" id="rotatePartButton">↻ Повернуть</button>
+            <button type="button" id="removePartButton">Удалить</button>
+            <button type="button" id="toggleSwitchButton" hidden>Замкнуть</button>
           </div>
         </section>
 
-        <section class="panel mission-panel">
-          <div class="mission-top"><span class="mission-icon">✦</span><span class="section-kicker">МИССИЯ 01</span><span class="mission-xp">+40 XP</span></div>
-          <h2>Зажги светодиод</h2>
-          <p>Собери цепь так, чтобы ток мог пройти от плюса батарейки к минусу.</p>
-          <ul class="mission-steps">
-            <li><span>1</span> Добавь резистор и светодиод</li>
-            <li><span>2</span> Соедини контакты проводами</li>
-            <li><span>3</span> Проверь полярность и запусти</li>
-          </ul>
-          <div class="mission-note"><strong>Подсказка</strong><p>У светодиода анод A подключается к плюсу через резистор, а катод K — к минусу.</p></div>
-          <div class="mission-presets">
-            <button type="button" class="btn btn-secondary preset-button" id="workingPresetButton">⚡ Собрать рабочую цепь</button>
-            <button type="button" class="text-button preset-error-button" id="errorPresetButton">Показать ошибку полярности</button>
-          </div>
-          <p class="preset-caption">Примеры заменят текущую схему. Твою сборку можно вернуть кнопкой «Сбросить схему».</p>
+        <section class="settings-panel">
+          <div class="toolbox-heading"><div><span class="sidebar-kicker">ПАРАМЕТРЫ</span><h2>Источник и схема</h2></div></div>
+          <label class="setting-row"><span><strong>Напряжение</strong><small>Источник питания</small></span><select id="voltage3dControl"><option value="3">3 В</option><option value="5" selected>5 В</option><option value="9">9 В</option><option value="12">12 В</option></select></label>
+          <label class="setting-row"><span><strong>Сопротивление</strong><small>Номинал резисторов</small></span><select id="resistance3dControl"><option value="100">100 Ω</option><option value="220" selected>220 Ω</option><option value="330">330 Ω</option><option value="1000">1 кΩ</option></select></label>
+          <div class="mini-metrics"><div><span>ТОК В МОДЕЛИ</span><strong id="currentMetric">— <small>мА</small></strong></div><div><span>СОСТОЯНИЕ</span><strong id="stateMetric">Ожидание</strong></div></div>
+        </section>
+
+        <section class="mission3d-panel">
+          <div class="mission3d-label"><span>✦</span> ПЕРВЫЙ ЭКСПЕРИМЕНТ <b>+40 XP</b></div>
+          <h3>Зажги светодиод</h3>
+          <p>Поставь батарейку, резистор и светодиод. Соедини их проводами в замкнутую цепь.</p>
+          <button type="button" id="autoBuildButton" class="auto-build-button">Показать рабочий пример <span>↗</span></button>
         </section>
       </aside>
     </div>
-    <footer class="lab-footer">GLITCH LAB <span>Учись понимать. Пробуй собирать. Проверяй результат.</span></footer>
+    <section class="result3d-panel" id="result3dPanel" role="status" aria-live="polite">
+      <div class="result3d-icon" id="result3dIcon">i</div><div><strong id="result3dTitle">Твоя мастерская готова</strong><p id="result3dText">Установи детали на плату. Соедини два контакта, чтобы добавить провод, затем запусти симуляцию.</p></div>
+    </section>
+    <footer class="lab3d-footer"><span>GLITCH LAB <i>·</i> LEARN BY BUILDING</span><span>Учебная модель электроники — не замена инженерному симулятору.</span></footer>
   </main>
 </body>
 </html>

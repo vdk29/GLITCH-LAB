@@ -231,7 +231,7 @@ function makePartMesh(part) {
     add(new THREE.CylinderGeometry(0.3, 0.34, 0.2, 32), m.dark, 0, 0.58, 0);
     add(new THREE.TorusGeometry(0.29, 0.025, 8, 32), mat("#f6c7c8", 0.24), 0, 0.7, 0).rotation.x = Math.PI / 2;
     add(new THREE.SphereGeometry(0.07, 12, 8), mat("#fff2f2", 0.18), -0.12, 0.99, -0.15);
-    part.glowMesh = dome;
+    dome.userData.isLedDome = true;
   } else if (part.type === "resistor") {
     cylinderBetween([-0.78, 0.26, 0], [-0.34, 0.4, 0], 0.035, m.metal);
     cylinderBetween([0.34, 0.4, 0], [0.78, 0.26, 0], 0.035, m.metal);
@@ -371,6 +371,7 @@ function bindUI() {
   });
   canvas.addEventListener("pointerup", (event) => {
     if (placementType) {
+      if (isPaletteDragging) suppressPaletteClick = true;
       placePending(event);
       return;
     }
@@ -379,9 +380,12 @@ function bindUI() {
     getCanvasPoint(event);
     const terminalsHit = raycaster.intersectObjects(terminalObjects, true);
     if (terminalsHit.length) {
-      const terminal = terminalsHit[0].object;
-      const key = keyFor(terminal.userData.partId, terminal.userData.terminalId);
-      handleTerminalTap(key, terminal.userData.terminalLabel);
+      let terminal = terminalsHit[0].object;
+      while (terminal && !terminal.userData.kind) terminal = terminal.parent;
+      if (terminal) {
+        const key = keyFor(terminal.userData.partId, terminal.userData.terminalId);
+        handleTerminalTap(key, terminal.userData.terminalLabel);
+      }
       return;
     }
     const componentHits = raycaster.intersectObjects([...componentObjects.values()], true);
@@ -475,7 +479,7 @@ function handleTerminalTap(key, label) {
 }
 function clearGroup(group) {
   while (group.children.length) {
-    const child = group.children.pop();
+    const child = group.children[group.children.length - 1];
     group.remove(child);
     child.traverse?.((obj) => {
       if (obj.geometry && obj.geometry !== undefined) obj.geometry.dispose();
@@ -595,7 +599,7 @@ function updateLedGlow() {
     const root = componentObjects.get(part.id);
     if (!root || part.type !== "led") return;
     root.traverse((obj) => {
-      if (obj.isMesh && obj.material && obj.material.emissive) {
+      if (obj.isMesh && obj.userData.isLedDome && obj.material && obj.material.emissive) {
         obj.material.emissive.set(part.lit ? "#ff505d" : "#5c1019");
         obj.material.emissiveIntensity = part.lit ? 1.7 : 0.1;
       }

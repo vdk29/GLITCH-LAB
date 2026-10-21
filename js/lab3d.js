@@ -503,13 +503,13 @@ function bindUI() {
       while (node && !node.userData.partId) node = node.parent;
       if (node && node.userData.partId) {
         selectedPartId = node.userData.partId;
-        updateSelection();
+        rebuildWires(); updateSelection();
         const p = parts.find((item) => item.id === selectedPartId);
         result("", palette[p.type].title + " выбрана", "Можно повернуть деталь, удалить её или переключить выключатель. Контакты с цветными наконечниками можно соединять друг с другом.");
         return;
       }
     }
-    selectedPartId = null; updateSelection();
+    selectedPartId = null; rebuildWires(); updateSelection();
   });
   $("viewResetButton").addEventListener("click", () => {
     camera.position.set(10.5, 11.5, 12.5); controls.target.set(0, 0, 0); controls.update();

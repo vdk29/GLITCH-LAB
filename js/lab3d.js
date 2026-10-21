@@ -42,7 +42,7 @@ let ambientParticles = [];
 
 const boardWidth = 12;
 const boardDepth = 8;
-const terminalRadius = 0.115;
+const terminalRadius = 0.145;
 
 function init() {
   try {
@@ -95,8 +95,8 @@ function init() {
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.065;
-    controls.minDistance = 8;
-    controls.maxDistance = 23;
+    controls.minDistance = 6.2;
+    controls.maxDistance = 20;
     controls.maxPolarAngle = Math.PI * 0.47;
     controls.target.set(0, 0, 0);
     controls.update();
@@ -250,6 +250,9 @@ function makePartMesh(part) {
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
     mesh.castShadow = true; root.add(mesh); return mesh;
   };
+  const haloColor = part.type === "led" ? "#f5c4c6" : part.type === "resistor" ? "#f0d7ad" : part.type === "battery" ? "#cbd5f5" : part.type === "switch" ? "#c6e4d8" : "#d2d9f4";
+  add(new THREE.CylinderGeometry(part.type === "battery" ? 0.63 : 0.57, part.type === "battery" ? 0.67 : 0.61, 0.075, 48), mat("#f9fbff", 0.32, 0.12), 0, 0.205, 0).scale.set(1, 1, 0.72);
+  add(new THREE.TorusGeometry(part.type === "battery" ? 0.61 : 0.55, 0.022, 10, 48), mat(haloColor, 0.28, 0.16), 0, 0.25, 0).rotation.x = Math.PI / 2;
   const terminalX = part.type === "battery" ? 0.85 : part.type === "capacitor" ? 0.5 : 0.66;
   const terminals = [
     { id: part.type === "battery" ? "plus" : "a", x: -terminalX, z: 0, label: part.type === "led" ? "A" : part.type === "battery" ? "+" : "1" },
@@ -698,7 +701,7 @@ function rebuildWires() {
     const middle = raisedStart.clone().add(raisedEnd).multiplyScalar(0.5); middle.y += 0.4 + Math.min(0.55, start.distanceTo(end) * 0.08);
     const curve = new THREE.CatmullRomCurve3([raisedStart, middle, raisedEnd]);
     const wireMaterial = new THREE.MeshStandardMaterial({ color: index % 2 ? "#8da9e8" : "#e88e83", roughness: 0.35, metalness: 0.15, emissive: currentActive ? (index % 2 ? "#4d6fc2" : "#a94e49") : "#000000", emissiveIntensity: currentActive ? 0.28 : 0 });
-    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.035, 8, false), wireMaterial);
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.045, 10, false), wireMaterial);
     mesh.castShadow = true;
     mesh.userData.wireIndex = index;
     wireGroup.add(mesh); wireObjects.push(mesh);

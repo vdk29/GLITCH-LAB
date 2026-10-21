@@ -218,6 +218,11 @@
     };
   }
 
+  function isLessonCompleted(moduleId, lessonId) {
+    const items = state.completed[moduleId];
+    return Array.isArray(items) && items.includes(String(lessonId));
+  }
+
   function getProgress() {
     const moduleProgress = {};
     let totalLessons = 0;
@@ -405,6 +410,7 @@
     getProgress,
     getLevel: () => getLevel(state.xp),
     getModuleProgress,
+    isLessonCompleted,
     getModuleDefinitions,
     completeLesson,
     awardXP,

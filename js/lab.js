@@ -257,7 +257,7 @@
     if (!solved) {
       solved = true;
       if (window.GLITCH_LAB && typeof window.GLITCH_LAB.awardXP === "function") {
-        window.GLITCH_LAB.awardXP(40, "first-led-circuit");
+        window.GLITCH_LAB.completeLesson("circuit", "first-led-circuit");
       }
     }
     showResult("success", "Светодиод загорелся!", "Отлично! Цепь замкнута, полярность светодиода верная, а резистор ограничивает ток. Ты собрал первую работающую схему.");

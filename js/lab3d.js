@@ -24,6 +24,7 @@ let placementType = null;
 let selectedPartId = null;
 let isPaletteDragging = false;
 let palettePointer = null;
+let dragGhost = null;
 let showGrid = true;
 let voltage = 5;
 let resistance = 220;
@@ -384,17 +385,38 @@ function placePending(event) {
   return true;
 }
 function bindUI() {
+  const fullButton = $("fullViewButton");
+  fullButton?.addEventListener("click", () => {
+    const layout = document.querySelector(".lab3d-layout");
+    const active = layout.classList.toggle("immersive");
+    fullButton.setAttribute("aria-pressed", String(active));
+    fullButton.innerHTML = active ? "⤢ <span>Обычный вид</span>" : "⛶ <span>На весь экран</span>";
+    document.body.classList.toggle("lab-immersive-open", active);
+    setTimeout(resize, 80);
+  });
   document.querySelectorAll("[data-place]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
       if (event.button !== undefined && event.button !== 0) return;
       event.preventDefault();
       palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button };
       placementType = button.dataset.place;
+      dragGhost = button.cloneNode(true);
+      dragGhost.className = "dragging-component-ghost";
+      dragGhost.style.width = Math.min(button.getBoundingClientRect().width, 230) + "px";
+      dragGhost.style.left = event.clientX + "px";
+      dragGhost.style.top = event.clientY + "px";
+      dragGhost.setAttribute("aria-hidden", "true");
+      document.body.appendChild(dragGhost);
       button.classList.add("is-pending");
     });
   });
   window.addEventListener("pointermove", (event) => {
     if (!palettePointer) return;
+    if (dragGhost) {
+      dragGhost.style.left = event.clientX + "px";
+      dragGhost.style.top = event.clientY + "px";
+      dragGhost.classList.toggle("is-dragging", Math.hypot(event.clientX - palettePointer.x, event.clientY - palettePointer.y) > 9);
+    }
     if (Math.hypot(event.clientX - palettePointer.x, event.clientY - palettePointer.y) > 9) {
       palettePointer.moved = true;
       isPaletteDragging = true;
@@ -410,6 +432,7 @@ function bindUI() {
       const drag = palettePointer;
       palettePointer = null;
       isPaletteDragging = false;
+      dragGhost?.remove(); dragGhost = null;
       canvas.style.cursor = "";
       $("sceneDropHint").classList.remove("visible");
       if (drag.moved) {
@@ -599,9 +622,18 @@ function bindUI() {
   });
   $("autoBuildButton").addEventListener("click", autoBuild);
   window.addEventListener("resize", resize);
+  window.addEventListener("pointercancel", () => {
+    palettePointer = null; isPaletteDragging = false; dragGhost?.remove(); dragGhost = null;
+    $("sceneDropHint").classList.remove("visible");
+    document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
+  });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      placementType = null; isPaletteDragging = false; palettePointer = null; $("sceneDropHint").classList.remove("visible");
+      document.querySelector(".lab3d-layout")?.classList.remove("immersive");
+      document.body.classList.remove("lab-immersive-open");
+      const fullButton = $("fullViewButton");
+      if (fullButton) { fullButton.setAttribute("aria-pressed", "false"); fullButton.innerHTML = "⛶ <span>На весь экран</span>"; }
+      placementType = null; isPaletteDragging = false; palettePointer = null; dragGhost?.remove(); dragGhost = null; $("sceneDropHint").classList.remove("visible");
       document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
     }
     if ((event.key === "Delete" || event.key === "Backspace") && selectedPartId && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) $("removePartButton").click();

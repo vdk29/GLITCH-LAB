@@ -23,6 +23,7 @@ let scene, camera, renderer, controls, boardGroup, componentGroup, wireGroup, gr
 let placementType = null;
 let selectedPartId = null;
 let isPaletteDragging = false;
+let palettePointer = null;
 let showGrid = true;
 let voltage = 5;
 let resistance = 220;
@@ -359,10 +360,13 @@ function addPart(type, position) {
     return;
   }
   const id = type + "-" + nextId++;
-  parts.push({ id, type, x: position.x, z: position.z, rotation: 0, closed: false });
+  parts.push({ id, type, x: position.x, z: position.z, rotation: 0, closed: false, justPlaced: true });
   selectedPartId = id;
   currentActive = false; solved = false;
-  save(); rebuildAll(); updateSelection();
+  save(); rebuildAll();
+  const placedRoot = componentObjects.get(id);
+  if (placedRoot) { placedRoot.scale.setScalar(0.72); placedRoot.position.y += 0.72; placedRoot.userData.spawnAt = performance.now(); placedRoot.userData.spawnY = 0.16; }
+  updateSelection();
   result("", palette[type].title + " установлен", "Деталь аккуратно поставлена на плату. Нажми на её контакт, а затем на контакт другой детали, чтобы соединить их проводом.");
 }
 function placePending(event) {
@@ -383,31 +387,56 @@ function bindUI() {
   document.querySelectorAll("[data-place]").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
       if (event.button !== undefined && event.button !== 0) return;
+      event.preventDefault();
+      palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button };
       placementType = button.dataset.place;
-      isPaletteDragging = true;
-      $("sceneDropHint").classList.add("visible");
-      $("sceneHint").textContent = "Отпусти компонент над платой, чтобы установить его";
       button.classList.add("is-pending");
     });
-    button.addEventListener("click", () => {
-      placementType = button.dataset.place;
-      isPaletteDragging = false;
-      document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === button));
-      $("sceneHint").textContent = "Теперь коснись свободного места на плате";
-      result("", "Выбрана деталь: " + palette[placementType].title, "Нажми на свободное место платы, чтобы поставить компонент. Можно также перетащить его прямо на плату.");
-    });
+  });
+  window.addEventListener("pointermove", (event) => {
+    if (!palettePointer) return;
+    if (Math.hypot(event.clientX - palettePointer.x, event.clientY - palettePointer.y) > 9) {
+      palettePointer.moved = true;
+      isPaletteDragging = true;
+      placementType = palettePointer.type;
+      $("sceneDropHint").classList.add("visible");
+      $("sceneHint").textContent = "Перенеси деталь вправо на плату и отпусти";
+      document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === palettePointer.button));
+      canvas.style.cursor = "copy";
+    }
   });
   window.addEventListener("pointerup", (event) => {
+    if (palettePointer) {
+      const drag = palettePointer;
+      palettePointer = null;
+      isPaletteDragging = false;
+      canvas.style.cursor = "";
+      $("sceneDropHint").classList.remove("visible");
+      if (drag.moved) {
+        const rect = canvas.getBoundingClientRect();
+        const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+        if (inside) {
+          placementType = drag.type;
+          placePending(event);
+        } else {
+          placementType = null;
+          document.querySelectorAll(".component-pick").forEach((item) => item.classList.remove("is-pending"));
+          result("warning", "Отпусти деталь над платой", "Перенеси компонент из каталога прямо в область 3D-платы.");
+        }
+      } else {
+        placementType = drag.type;
+        document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === drag.button));
+        $("sceneHint").textContent = "Теперь коснись места на плате, чтобы установить деталь";
+        result("", "Выбрана деталь: " + palette[placementType].title, "Перетащи её на плату или просто коснись свободного места на плате.");
+      }
+      return;
+    }
     if (!placementType || !isPaletteDragging) return;
     const rect = canvas.getBoundingClientRect();
     const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
     isPaletteDragging = false;
-    if (inside) {
-      suppressPaletteClick = true;
-      placePending(event);
-    } else {
-      $("sceneDropHint").classList.remove("visible");
-    }
+    if (inside) placePending(event);
+    else $("sceneDropHint").classList.remove("visible");
   });
   canvas.addEventListener("pointermove", (event) => {
     if (isPaletteDragging) $("sceneDropHint").classList.add("visible");
@@ -571,7 +600,7 @@ function bindUI() {
   window.addEventListener("resize", resize);
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      placementType = null; isPaletteDragging = false; $("sceneDropHint").classList.remove("visible");
+      placementType = null; isPaletteDragging = false; palettePointer = null; $("sceneDropHint").classList.remove("visible");
       document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
     }
     if ((event.key === "Delete" || event.key === "Backspace") && selectedPartId && !["INPUT","TEXTAREA","SELECT"].includes(document.activeElement.tagName)) $("removePartButton").click();
@@ -834,6 +863,19 @@ function animate() {
       }
     });
   }
+  componentObjects.forEach((root) => {
+    if (root.userData.spawnAt) {
+      const progress = Math.min(1, (performance.now() - root.userData.spawnAt) / 330);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      root.scale.setScalar(0.72 + 0.28 * eased);
+      root.position.y = root.userData.spawnY + 0.72 * (1 - eased) + Math.sin(progress * Math.PI) * 0.09;
+      if (progress >= 1) {
+        root.position.y = root.userData.spawnY;
+        root.scale.setScalar(1);
+        delete root.userData.spawnAt;
+      }
+    }
+  });
   ambientParticles.forEach((particle) => {
     particle.position.y = particle.userData.baseY + Math.sin(time * 0.7 + particle.userData.floatOffset) * 0.11;
     particle.position.x += Math.sin(time * 0.22 + particle.userData.floatOffset) * 0.0008;

@@ -205,3 +205,7 @@
   .lab3d-layout.immersive .sidebar-kicker{font-size:6px}
   .lab3d-layout.immersive .toolbox-heading h2{font-size:12px}
 }
+
+/* Larger, calmer play surface */
+@media(min-width:851px){.lab3d-container{width:min(1740px,calc(100% - 36px))}.scene-viewport{height:clamp(560px,66vh,790px)}.lab3d-layout{grid-template-columns:minmax(0,1fr) 350px;gap:20px}.scene-panel{box-shadow:0 20px 60px rgba(49,65,102,.075)}.scene-viewport{background:radial-gradient(ellipse at 50% 44%,#fff 0%,#f7f7ff 46%,#e9eef9 100%)}}
+.component-pick{touch-action:none;-webkit-touch-callout:none}

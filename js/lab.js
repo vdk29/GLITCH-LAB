@@ -260,6 +260,8 @@
       return;
     }
     pathLed.lit = true;
+    const seriesResistors = Math.max(1, path.filter((part) => part.type === "resistor").length);
+    const estimatedCurrent = (3000 / (220 * seriesResistors)).toFixed(1).replace(".", ",");
     render();
     if (!solved) {
       solved = true;
@@ -267,7 +269,7 @@
         window.GLITCH_LAB.completeLesson("circuit", "first-led-circuit");
       }
     }
-    showResult("success", "Светодиод загорелся!", "Отлично! Для модели 5 В, светодиода с падением около 2 В и резистора 220 Ω ток составит примерно 14 мА. Цепь замкнута, полярность верная, резистор ограничивает ток.");
+    showResult("success", "Светодиод загорелся!", "Отлично! Для модели 5 В и светодиода с падением около 2 В расчётный ток при " + seriesResistors + " резисторе(ах) по 220 Ω — около " + estimatedCurrent + " мА. Цепь замкнута, полярность верная, резисторы ограничивают ток.");
   }
 
   function showResult(kind, title, description) {

@@ -64,3 +64,23 @@
 @media(max-width:850px){.lab3d-container{width:calc(100% - 24px);padding-top:22px}.lab3d-heading{align-items:flex-start;flex-direction:column;gap:13px}.lab3d-status{align-self:flex-start}.lab3d-layout{grid-template-columns:1fr}.scene-viewport{height:min(68vh,590px);min-height:390px}.lab3d-sidebar{grid-template-columns:1fr 1fr;align-items:start}.toolbox-panel{grid-row:span 2}.mission3d-panel{grid-column:2}.settings-panel{grid-column:2}.lab3d-footer{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.lab3d-container{width:calc(100% - 16px);padding-top:15px}.lab3d-heading{margin-bottom:15px}.lab3d-heading h1{font-size:31px;letter-spacing:-1px}.lab3d-heading p{font-size:12px}.scene-panel,.toolbox-panel,.settings-panel,.mission3d-panel,.result3d-panel{border-radius:17px}.scene-topbar{height:58px;padding:0 13px}.scene-viewport{height:430px;min-height:380px}.scene-hud{font-size:8px;top:10px}.scene-hud-left{left:10px}.scene-hud-right{right:10px}.scene-hud-right .hud-key{display:none}.scene-bottom-note{left:10px;right:10px;bottom:10px;font-size:9px}.scene-actionbar{align-items:stretch;flex-direction:column;padding:12px}.scene-counter{display:flex;align-items:center;justify-content:space-between}.scene-counter strong{margin:0}.scene-main-actions{display:grid;grid-template-columns:1fr 1fr}.scene-main-actions .primary{grid-column:1/-1;grid-row:1}.scene-button{min-height:39px}.lab3d-sidebar{grid-template-columns:1fr}.toolbox-panel,.settings-panel,.mission3d-panel{grid-column:auto;grid-row:auto}.component-shelf{grid-template-columns:1fr 1fr;gap:7px}.component-pick{min-height:70px;padding:7px;gap:6px}.pick-art{flex-basis:35px;height:39px}.pick-text strong{font-size:10px}.pick-text small{font-size:8px}.pick-plus{width:20px;height:20px;flex:0 0 20px}.scene-title small{font-size:9px}.scene-tool{padding:8px}.scene-tool span{display:none}.lab3d-footer{font-size:8px}.result3d-panel{padding:13px}}
 @media(prefers-reduced-motion:reduce){.loading-orbit{animation:none}.scene-button,.component-pick,.pick-plus{transition:none}}
+
+
+/* Polished interaction layer */
+#circuitCanvas{display:block;cursor:grab;outline:none;touch-action:none}
+#circuitCanvas:active{cursor:grabbing}
+.scene-viewport{isolation:isolate}
+.scene-viewport:after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(ellipse at 48% 42%,rgba(255,255,255,.08),transparent 62%);z-index:1}
+.scene-drop-hint{backdrop-filter:blur(8px);transition:opacity .22s,transform .22s,background .22s}
+.scene-drop-hint.visible{background:rgba(246,244,255,.86);transform:translate(-50%,-50%) scale(1.015)}
+.component-pick{will-change:transform}
+.component-pick:active{transform:scale(.985)}
+.component-pick.is-pending .pick-plus{transform:rotate(135deg);background:#e7e2ff}
+.scene-button,.scene-tool,.auto-build-button,.selected-actions button{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease}
+.scene-button:hover,.scene-tool:hover,.selected-actions button:hover{transform:translateY(-1px);box-shadow:0 7px 18px rgba(104,105,155,.09)}
+.scene-button:active,.scene-tool:active,.auto-build-button:active,.selected-actions button:active{transform:scale(.985)}
+.scene-panel,.toolbox-panel,.settings-panel,.mission3d-panel,.result3d-panel{box-shadow:0 10px 34px rgba(65,76,113,.045)}
+.scene-live-dot{box-shadow:0 0 0 4px rgba(117,190,153,.12),0 0 12px rgba(117,190,153,.35)}
+@keyframes soft-arrive{0%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}
+.result3d-panel{animation:soft-arrive .28s ease both}
+@media(prefers-reduced-motion:reduce){.result3d-panel{animation:none}.scene-button,.scene-tool,.auto-build-button,.selected-actions button,.component-pick{transition:none}}

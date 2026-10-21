@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f9fc">
+  <title>Лаборатория — GLITCH LAB</title>
+  <meta name="description" content="Собирай электронные схемы, соединяй контакты и изучай, как работает электрическая цепь.">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/lab.css">
+  <script src="js/app.js" defer></script>
+  <script src="js/lab.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="GLITCH LAB — главная">
+      <span class="brand-mark">g.</span>
+      <span class="brand-name">GLITCH LAB<small>ELECTRONICS ACADEMY</small></span>
+    </a>
+    <nav class="header-nav" aria-label="Главная навигация">
+      <a class="header-link" href="index.html">Главная</a>
+      <a class="header-link" href="lessons.html">Обучение</a>
+      <a class="header-link active" href="lab.html">Лаборатория</a>
+      <a class="header-link" href="components.html">Компоненты</a>
+    </nav>
+    <a class="lab-back-link" href="index.html">← На главную</a>
+  </header>
+
+  <main class="lab-container">
+    <section class="lab-intro">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> ПРАКТИКА · УРОВЕНЬ 01</div>
+        <h1>Твоя первая <span>электрическая цепь</span></h1>
+        <p>Добавляй детали на плату, соединяй контакты проводами и запускай симуляцию. Ошибки — часть обучения.</p>
+      </div>
+      <div class="lab-level-card"><span class="lab-level-icon">01</span><div><strong>Инженерная мастерская</strong><small>Эксперимент № 1 · Светодиод</small></div></div>
+    </section>
+
+    <div class="lab-layout">
+      <section class="workspace panel">
+        <div class="workspace-heading">
+          <div><span class="section-kicker">РАБОЧАЯ ОБЛАСТЬ</span><h2>Макетная плата</h2></div>
+          <button type="button" class="text-button" id="resetButton">Сбросить схему</button>
+        </div>
+        <div class="board-help"><span class="help-dot"></span><span id="connectionHint">Нажми на контакт детали, затем на второй контакт, чтобы соединить их.</span></div>
+        <div class="board" id="board" aria-label="Макетная плата с электронными компонентами">
+          <div class="board-rail rail-positive"><span>+</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="board-rail rail-negative"><span>−</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="board-center">
+            <div class="board-mark">GLITCH LAB <small>EXPERIMENT BOARD</small></div>
+            <div class="component-grid" id="componentGrid"></div>
+          </div>
+          <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+        </div>
+        <div class="board-legend"><span><i class="legend-dot dot-red"></i> Положительный контакт</span><span><i class="legend-dot dot-blue"></i> Отрицательный / второй контакт</span><span><i class="legend-dot dot-wire"></i> Провод</span></div>
+        <div class="workspace-actions">
+          <button type="button" class="btn btn-primary" id="simulateButton"><span aria-hidden="true">▶</span> Запустить симуляцию</button>
+          <button type="button" class="btn btn-secondary" id="clearWiresButton">Убрать провода</button>
+        </div>
+        <div class="simulation-result" id="simulationResult" role="status" aria-live="polite">
+          <span class="result-icon">i</span><div><strong>Схема пока не запущена</strong><p>Собери цепь и проверь, загорится ли светодиод.</p></div>
+        </div>
+      </section>
+
+      <aside class="lab-sidebar">
+        <section class="panel parts-panel">
+          <div class="panel-heading"><div><span class="section-kicker">ИНСТРУМЕНТЫ</span><h2>Компоненты</h2></div><span class="part-count" id="partCount">1 деталь</span></div>
+          <p class="panel-description">Нажми на компонент, чтобы добавить его на плату.</p>
+          <div class="parts-list">
+            <button class="part-option" type="button" data-add="resistor">
+              <span class="part-illustration resistor-illustration"><i></i><b></b><i></i></span>
+              <span class="part-copy"><strong>Резистор</strong><small>Ограничивает ток</small></span><span class="part-add">+</span>
+            </button>
+            <button class="part-option" type="button" data-add="led">
+              <span class="part-illustration led-illustration"><i></i></span>
+              <span class="part-copy"><strong>Светодиод</strong><small>У него есть полярность</small></span><span class="part-add">+</span>
+            </button>
+            <button class="part-option" type="button" data-add="switch">
+              <span class="part-illustration switch-illustration"><i></i><b></b></span>
+              <span class="part-copy"><strong>Выключатель</strong><small>Размыкает и замыкает цепь</small></span><span class="part-add">+</span>
+            </button>
+          </div>
+          <div class="battery-card">
+            <div class="battery-symbol">＋<span>−</span></div>
+            <div><strong>Батарейка 5 В</strong><small>Уже установлена на плате</small></div><span class="fixed-tag">В цепи</span>
+          </div>
+        </section>
+
+        <section class="panel mission-panel">
+          <div class="mission-top"><span class="mission-icon">✦</span><span class="section-kicker">МИССИЯ 01</span><span class="mission-xp">+40 XP</span></div>
+          <h2>Зажги светодиод</h2>
+          <p>Собери цепь так, чтобы ток мог пройти от плюса батарейки к минусу.</p>
+          <ul class="mission-steps">
+            <li><span>1</span> Добавь резистор и светодиод</li>
+            <li><span>2</span> Соедини контакты проводами</li>
+            <li><span>3</span> Проверь полярность и запусти</li>
+          </ul>
+          <div class="mission-note"><strong>Подсказка</strong><p>У светодиода анод A подключается к плюсу через резистор, а катод K — к минусу.</p></div>
+        </section>
+      </aside>
+    </div>
+    <footer class="lab-footer">GLITCH LAB <span>Учись понимать. Пробуй собирать. Проверяй результат.</span></footer>
+  </main>
+</body>
+</html>

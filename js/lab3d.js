@@ -399,6 +399,17 @@ function bindUI() {
       }
       return;
     }
+    const wireHits = raycaster.intersectObjects(wireObjects, false);
+    if (wireHits.length) {
+      const index = wireHits[0].object.userData.wireIndex;
+      if (Number.isInteger(index) && wires[index]) {
+        wires.splice(index, 1);
+        currentActive = false;
+        save(); rebuildWires(); updateMetrics();
+        result("", "Провод удалён", "Нажми на контакты ещё раз, если хочешь восстановить соединение.");
+      }
+      return;
+    }
     const componentHits = raycaster.intersectObjects([...componentObjects.values()], true);
     if (componentHits.length) {
       let node = componentHits[0].object;
@@ -523,7 +534,9 @@ function rebuildWires() {
     const curve = new THREE.CatmullRomCurve3([raisedStart, middle, raisedEnd]);
     const wireMaterial = new THREE.MeshStandardMaterial({ color: index % 2 ? "#8da9e8" : "#e88e83", roughness: 0.35, metalness: 0.15, emissive: currentActive ? (index % 2 ? "#4d6fc2" : "#a94e49") : "#000000", emissiveIntensity: currentActive ? 0.28 : 0 });
     const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 28, 0.035, 8, false), wireMaterial);
-    mesh.castShadow = true; wireGroup.add(mesh); wireObjects.push(mesh);
+    mesh.castShadow = true;
+    mesh.userData.wireIndex = index;
+    wireGroup.add(mesh); wireObjects.push(mesh);
     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), mat("#fff8d8", 0.22, 0.1));
     dot.userData.flowCurve = curve; dot.userData.flowOffset = (index * 0.23) % 1;
     dot.visible = currentActive; wireGroup.add(dot); activeFlowDots.push(dot);

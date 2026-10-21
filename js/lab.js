@@ -255,14 +255,15 @@
       const x2 = br.left + br.width / 2 - rect.left;
       const y2 = br.top + br.height / 2 - rect.top;
       const midY = Math.max(12, Math.min(rect.height - 12, (y1 + y2) / 2 - 12));
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", "M " + x1 + " " + y1 + " C " + x1 + " " + midY + ", " + x2 + " " + midY + ", " + x2 + " " + y2);
-      path.setAttribute("class", "wire-path");
-      path.setAttribute("tabindex", "0");
-      path.setAttribute("role", "button");
-      path.setAttribute("aria-label", "Удалить провод");
-      path.setAttribute("title", "Нажми, чтобы удалить этот провод");
-      path.addEventListener("click", (event) => {
+      const wireD = "M " + x1 + " " + y1 + " C " + x1 + " " + midY + ", " + x2 + " " + midY + ", " + x2 + " " + y2;
+      const hitPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      hitPath.setAttribute("d", wireD);
+      hitPath.setAttribute("class", "wire-hit");
+      hitPath.setAttribute("tabindex", "0");
+      hitPath.setAttribute("role", "button");
+      hitPath.setAttribute("aria-label", "Удалить провод");
+      hitPath.setAttribute("title", "Нажми, чтобы удалить этот провод");
+      hitPath.addEventListener("click", (event) => {
         event.stopPropagation();
         wires = wires.filter((item) => item !== wire);
         selectedTerminal = null;
@@ -271,13 +272,16 @@
         render();
         showResult("", "Провод удалён", "Соедини эти контакты снова, если он нужен для схемы.");
       });
-      path.addEventListener("keydown", (event) => {
+      hitPath.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          path.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          hitPath.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         }
       });
-      wireLayer.appendChild(path);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", wireD);
+      path.setAttribute("class", "wire-path" + (wires.indexOf(wire) % 2 ? " wire-blue" : ""));
+      wireLayer.append(hitPath, path);
     });
   }
 

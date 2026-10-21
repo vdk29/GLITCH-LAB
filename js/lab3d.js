@@ -268,24 +268,40 @@ function makePartMesh(part) {
     add(new THREE.CapsuleGeometry(0.22, 0.42, 5, 16), m.body, 0, 0.43, 0).rotation.z = Math.PI / 2;
     [-0.2, -0.065, 0.07, 0.2].forEach((x, i) => add(new THREE.CylinderGeometry(0.225, 0.225, 0.055, 24), [mat("#8e6b58"),mat("#c77a56"),mat("#708d72"),mat("#bd9655")][i], x, 0.43, 0).rotation.z = Math.PI / 2);
   } else if (part.type === "battery") {
-    add(new THREE.CylinderGeometry(0.34, 0.34, 1.2, 32), m.body, 0, 0.76, 0);
-    add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 32), m.dark, 0, 1.35, 0);
-    add(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 24), mat("#d1a7a0", 0.25, 0.5), -0.18, 1.47, 0);
-    add(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 24), mat("#9ca8c0", 0.25, 0.5), 0.18, 1.47, 0);
+    add(new THREE.CylinderGeometry(0.34, 0.34, 1.2, 40), m.body, 0, 0.76, 0);
+    add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 40), m.dark, 0, 1.35, 0);
+    add(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 28), mat("#d1a7a0", 0.25, 0.5), -0.18, 1.47, 0);
+    add(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 28), mat("#9ca8c0", 0.25, 0.5), 0.18, 1.47, 0);
+    add(new THREE.TorusGeometry(0.343, 0.018, 8, 40), mat("#f8faff", 0.3, 0.15), 0, 0.38, 0).rotation.x = Math.PI / 2;
+    const labelCanvas = document.createElement("canvas");
+    labelCanvas.width = 256; labelCanvas.height = 160;
+    const labelCtx = labelCanvas.getContext("2d");
+    labelCtx.clearRect(0, 0, 256, 160);
+    labelCtx.fillStyle = "#f5f7ff"; labelCtx.beginPath(); labelCtx.roundRect(12, 12, 232, 136, 20); labelCtx.fill();
+    labelCtx.fillStyle = "#788bc2"; labelCtx.font = "800 32px Arial"; labelCtx.textAlign = "center"; labelCtx.fillText("GL / 5V", 128, 70);
+    labelCtx.fillStyle = "#a2adc9"; labelCtx.font = "18px Arial"; labelCtx.fillText("POWER CELL", 128, 104);
+    const labelTexture = new THREE.CanvasTexture(labelCanvas); labelTexture.colorSpace = THREE.SRGBColorSpace;
+    const labelMesh = add(new THREE.PlaneGeometry(0.49, 0.34), new THREE.MeshBasicMaterial({ map: labelTexture, transparent: true, side: THREE.DoubleSide }), 0, 0.79, 0.343);
+    labelMesh.rotation.y = 0;
     cylinderBetween([-0.85, 0.26, 0], [-0.18, 0.55, 0], 0.04, m.metal);
     cylinderBetween([0.85, 0.26, 0], [0.18, 0.55, 0], 0.04, m.metal);
     const plus = add(new THREE.TorusGeometry(0.11, 0.018, 6, 20), mat("#c9867d"), -0.18, 1.55, 0); plus.rotation.x = Math.PI / 2;
   } else if (part.type === "switch") {
     add(new THREE.BoxGeometry(1.0, 0.3, 0.72), m.body, 0, 0.34, 0);
     add(new THREE.BoxGeometry(0.86, 0.09, 0.58), m.dark, 0, 0.51, 0);
+    const statusLamp = add(new THREE.SphereGeometry(0.065, 16, 12), mat(part.closed ? "#8fe0b4" : "#e6b8a9", 0.2), 0, 0.59, 0.22);
+    statusLamp.material.emissive = new THREE.Color(part.closed ? "#54c98a" : "#b86c60");
+    statusLamp.material.emissiveIntensity = part.closed ? 0.8 : 0.12;
     const lever = add(new THREE.BoxGeometry(0.54, 0.11, 0.14), m.metal, part.closed ? 0.08 : 0, 0.7, part.closed ? 0 : -0.12);
     lever.rotation.z = part.closed ? 0 : -0.38;
     cylinderBetween([-0.68, 0.25, 0], [-0.43, 0.35, 0], 0.035, m.metal);
     cylinderBetween([0.68, 0.25, 0], [0.43, 0.35, 0], 0.035, m.metal);
   } else if (part.type === "capacitor") {
-    add(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 32), m.body, 0, 0.59, 0);
-    add(new THREE.CylinderGeometry(0.35, 0.35, 0.09, 32), m.dark, 0, 1.05, 0);
-    add(new THREE.CircleGeometry(0.25, 24), mat("#e4eafa", 0.25), 0, 1.101, 0).rotation.x = -Math.PI / 2;
+    add(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 40), m.body, 0, 0.59, 0);
+    add(new THREE.CylinderGeometry(0.35, 0.35, 0.09, 40), m.dark, 0, 1.05, 0);
+    add(new THREE.CircleGeometry(0.25, 32), mat("#e4eafa", 0.25), 0, 1.101, 0).rotation.x = -Math.PI / 2;
+    const plusV = add(new THREE.BoxGeometry(0.24, 0.018, 0.045), mat("#f8fbff", 0.25), 0, 1.115, 0);
+    add(new THREE.BoxGeometry(0.045, 0.018, 0.24), mat("#f8fbff", 0.25), 0, 1.115, 0);
     cylinderBetween([-0.5, 0.23, 0], [-0.25, 0.4, 0], 0.035, m.metal);
     cylinderBetween([0.5, 0.23, 0], [0.25, 0.4, 0], 0.035, m.metal);
   }

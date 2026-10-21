@@ -403,9 +403,10 @@ function bindUI() {
       event.preventDefault();
       palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button };
       placementType = button.dataset.place;
-      dragGhost = button.cloneNode(true);
-      dragGhost.className = "dragging-component-ghost";
-      dragGhost.style.width = Math.min(button.getBoundingClientRect().width, 230) + "px";
+      dragGhost = document.createElement("div");
+      dragGhost.className = "dragging-component-ghost ghost-" + button.dataset.place;
+      const iconArt = button.querySelector(".pick-art");
+      if (iconArt) dragGhost.appendChild(iconArt.cloneNode(true));
       dragGhost.style.left = event.clientX + "px";
       dragGhost.style.top = event.clientY + "px";
       dragGhost.setAttribute("aria-hidden", "true");

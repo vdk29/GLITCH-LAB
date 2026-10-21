@@ -146,14 +146,24 @@ function buildBoard() {
   }
   const holeMat = mat("#658b7b", 0.5, 0.08);
   const holeInner = mat("#466e61", 0.72);
+  const holePositions = [];
   for (let x = -5.4; x <= 5.401; x += 0.36) {
-    for (let z = -3.35; z <= 3.351; z += 0.36) {
-      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.064, 0.064, 0.018, 12), holeMat);
-      ring.position.set(x, 0.143, z); boardGroup.add(ring);
-      const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.02, 12), holeInner);
-      hole.position.set(x, 0.154, z); boardGroup.add(hole);
-    }
+    for (let z = -3.35; z <= 3.351; z += 0.36) holePositions.push([x, z]);
   }
+  const ringInstances = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.064, 0.064, 0.018, 12), holeMat, holePositions.length);
+  const holeInstances = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.033, 0.033, 0.02, 12), holeInner, holePositions.length);
+  const instanceTransform = new THREE.Object3D();
+  holePositions.forEach(([x, z], index) => {
+    instanceTransform.position.set(x, 0.143, z);
+    instanceTransform.updateMatrix();
+    ringInstances.setMatrixAt(index, instanceTransform.matrix);
+    instanceTransform.position.set(x, 0.154, z);
+    instanceTransform.updateMatrix();
+    holeInstances.setMatrixAt(index, instanceTransform.matrix);
+  });
+  ringInstances.instanceMatrix.needsUpdate = true;
+  holeInstances.instanceMatrix.needsUpdate = true;
+  boardGroup.add(ringInstances, holeInstances);
   const silk = mat("#f1fbf5", 0.7);
   for (let i = 0; i < 10; i++) {
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, 0.2), silk);
@@ -302,6 +312,7 @@ function terminalWorldPosition(part, terminalId) {
   if (!terminal) return null;
   const position = new THREE.Vector3();
   terminal.getWorldPosition(position);
+  position.y += 0.25;
   return position;
 }
 function keyFor(partId, terminalId) { return partId + ":" + terminalId; }

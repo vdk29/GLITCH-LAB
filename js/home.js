@@ -1,17 +1,15 @@
-
+/* GLITCH LAB — home page interactions */
 (function () {
   "use strict";
 
   function initHome() {
     const app = window.GLITCH_LAB;
-
     if (!app) {
       console.error("GLITCH LAB: не найден js/app.js");
       return;
     }
 
     const $ = (id) => document.getElementById(id);
-
     const modules = [
       { id: "basics", suffix: 1, total: 4 },
       { id: "components", suffix: 2, total: 5 },
@@ -28,8 +26,7 @@
     function setProgress(id, percent) {
       const element = $(id);
       if (!element) return;
-
-      const value = Math.max(0, Math.min(100, percent));
+      const value = Math.max(0, Math.min(100, Number(percent) || 0));
       element.style.width = value + "%";
       element.setAttribute("role", "progressbar");
       element.setAttribute("aria-valuemin", "0");
@@ -39,37 +36,26 @@
 
     function renderStats() {
       const progress = app.getProgress();
+      const level = progress.level || app.getLevel();
 
       setText("xpValue", progress.xp);
       setText("completedValue", progress.completedLessons);
-
-      const level = app.getLevel(progress.xp);
-
-      setText("levelValue", level.title);
+      setText("levelValue", level.number);
       setText(
         "levelDescription",
-        level.next
-          ? "Ещё " + Math.max(0, level.next.xp - progress.xp) +
-            " XP до следующего уровня"
-          : "Ты достиг максимального уровня!"
+        level.nextThreshold !== null
+          ? level.title + " · ещё " + level.xpToNext + " XP до следующего уровня"
+          : level.title + " · максимальный уровень"
       );
-
-      setText("progressValue", progress.percent + "%");
-      setProgress("courseProgress", progress.percent);
+      setText("progressValue", progress.coursePercent);
+      setProgress("courseProgress", progress.coursePercent);
     }
 
     function renderModules() {
       modules.forEach(function (module) {
         const data = app.getModuleProgress(module.id);
-        const percent = data.percent || 0;
-        const suffix = module.suffix;
-
-        setProgress("moduleProgress" + suffix, percent);
-
-        setText(
-          "moduleText" + suffix,
-          data.completed + " из " + module.total + " заданий"
-        );
+        setProgress("moduleProgress" + module.suffix, data.percent);
+        setText("moduleText" + module.suffix, data.completed + " из " + module.total + " заданий");
       });
     }
 
@@ -81,7 +67,6 @@
     function initDailyQuestion() {
       const button = $("dailyQuestionButton");
       const answer = $("dailyAnswer");
-
       if (!button || !answer) return;
 
       answer.classList.add("hidden");
@@ -89,33 +74,28 @@
 
       button.addEventListener("click", function () {
         const isHidden = answer.classList.contains("hidden");
-
-        if (isHidden) {
-          answer.classList.remove("hidden");
-          button.setAttribute("aria-expanded", "true");
-
-          const result = app.markDailyQuestionSolved();
-
-          if (result && result.awarded) {
-            button.textContent = "Ответ изучен · +10 XP";
-
-            const feedback = document.createElement("p");
-            feedback.className = "feedback feedback-success";
-            feedback.textContent = "Отлично! Ты получил 10 опыта.";
-            feedback.setAttribute("data-daily-feedback", "");
-
-            const oldFeedback = answer.querySelector(
-              "[data-daily-feedback]"
-            );
-
-            if (oldFeedback) oldFeedback.remove();
-            answer.appendChild(feedback);
-          } else {
-            button.textContent = "Ответ уже изучен ✓";
-          }
-        } else {
+        if (!isHidden) {
           answer.classList.add("hidden");
           button.setAttribute("aria-expanded", "false");
+          return;
+        }
+
+        answer.classList.remove("hidden");
+        button.setAttribute("aria-expanded", "true");
+        const result = app.markDailyQuestionSolved();
+
+        if (result && result.ok && !result.alreadyCompleted) {
+          button.textContent = "Ответ изучен · +10 XP";
+          let feedback = answer.querySelector("[data-daily-feedback]");
+          if (!feedback) {
+            feedback = document.createElement("p");
+            feedback.className = "feedback feedback-success";
+            feedback.setAttribute("data-daily-feedback", "");
+            answer.appendChild(feedback);
+          }
+          feedback.textContent = "Отлично! Ты получил 10 опыта.";
+        } else {
+          button.textContent = "Ответ уже изучен ✓";
         }
       });
     }
@@ -123,7 +103,6 @@
     function initProfileButton() {
       const button = $("profileButton");
       if (!button) return;
-
       let panel = null;
 
       button.addEventListener("click", function () {
@@ -147,32 +126,25 @@
 
         const heading = document.createElement("strong");
         heading.textContent = "Твой профиль";
-
         const description = document.createElement("p");
         description.className = "muted small";
-        description.textContent =
-          "Пока без регистрации. Твой опыт и пройденные задания хранятся в этом браузере.";
-
+        description.textContent = "Пока без регистрации. Твой опыт и пройденные задания хранятся в этом браузере.";
         const close = document.createElement("button");
         close.type = "button";
         close.className = "btn btn-secondary btn-sm";
         close.textContent = "Закрыть";
         close.addEventListener("click", function () {
-          panel.remove();
+          if (panel) panel.remove();
           panel = null;
           button.setAttribute("aria-expanded", "false");
         });
 
         panel.append(heading, description, close);
-
         const parent = button.parentElement;
         if (parent) {
-          if (getComputedStyle(parent).position === "static") {
-            parent.style.position = "relative";
-          }
+          if (getComputedStyle(parent).position === "static") parent.style.position = "relative";
           parent.appendChild(panel);
         }
-
         button.setAttribute("aria-expanded", "true");
       });
     }
@@ -180,7 +152,6 @@
     render();
     initDailyQuestion();
     initProfileButton();
-
     window.addEventListener("glitchlab:progress", render);
     window.addEventListener("storage", function (event) {
       if (event.key === "glitchLabProgress") render();

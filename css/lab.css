@@ -84,3 +84,75 @@
 @keyframes soft-arrive{0%{opacity:0;transform:translateY(7px)}100%{opacity:1;transform:translateY(0)}}
 .result3d-panel{animation:soft-arrive .28s ease both}
 @media(prefers-reduced-motion:reduce){.result3d-panel{animation:none}.scene-button,.scene-tool,.auto-build-button,.selected-actions button,.component-pick{transition:none}}
+
+
+/* Desktop-first workbench: component dock stays to the right of the board */
+@media(max-width:850px){
+  .lab3d-layout{
+    display:grid;
+    grid-template-columns:minmax(400px,calc(100vw - 230px)) 218px;
+    gap:12px;
+    width:100%;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding:0 0 10px;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+    scrollbar-color:#d9d8f1 transparent;
+    -webkit-overflow-scrolling:touch;
+  }
+  .scene-panel{min-width:0}
+  .scene-viewport{height:480px;min-height:420px}
+  .lab3d-sidebar{display:grid;grid-template-columns:1fr;gap:10px;align-content:start}
+  .toolbox-panel,.settings-panel,.mission3d-panel{grid-column:auto;grid-row:auto;padding:12px}
+  .toolbox-heading h2{font-size:16px}
+  .toolbox-count{display:none}
+  .toolbox-intro{font-size:9px;margin:8px 0 10px}
+  .component-shelf{grid-template-columns:1fr;gap:6px}
+  .component-pick{min-height:58px;padding:6px;gap:6px;touch-action:none}
+  .pick-art{flex:0 0 35px;height:38px}
+  .pick-text strong{font-size:10px}
+  .pick-text small{font-size:8px;line-height:1.25}
+  .pick-plus{width:19px;height:19px;flex:0 0 19px}
+  .selected-part-panel{gap:7px}
+  .selected-part-panel p{font-size:9px}
+  .setting-row{gap:5px}
+  .setting-row strong{font-size:10px}
+  .setting-row small{font-size:8px}
+  .setting-row select{max-width:84px;font-size:10px}
+  .mini-metrics{gap:6px}
+  .mini-metrics>div{padding:8px}
+  .mini-metrics span{font-size:7px}
+  .mini-metrics strong{font-size:12px}
+  .mission3d-panel h3{font-size:14px}
+  .mission3d-panel p{font-size:9px}
+  .mission3d-label{font-size:7px}
+  .auto-build-button{font-size:9px;padding:10px}
+}
+@media(max-width:560px){
+  .lab3d-layout{grid-template-columns:minmax(390px,calc(100vw - 184px)) 172px;gap:9px}
+  .scene-viewport{height:430px;min-height:400px}
+  .scene-topbar{padding:0 10px}
+  .scene-hud-right{display:none}
+  .scene-actionbar{padding:10px}
+  .scene-main-actions{display:grid;grid-template-columns:1fr 1fr}
+  .scene-main-actions .primary{grid-column:1/-1;grid-row:1}
+  .scene-button{padding:0 8px;font-size:9px}
+  .toolbox-panel,.settings-panel,.mission3d-panel{padding:9px;border-radius:13px}
+  .toolbox-heading h2{font-size:14px}
+  .sidebar-kicker{font-size:7px;letter-spacing:1px}
+  .component-pick{min-height:55px}
+  .pick-art{flex-basis:29px;height:34px}
+  .pick-text small{display:none}
+  .pick-text strong{font-size:9px}
+  .pick-plus{width:17px;height:17px;flex-basis:17px;font-size:12px}
+  .selected-actions{display:grid;grid-template-columns:1fr}
+  .selected-actions button{font-size:9px;padding:7px}
+  .setting-row{align-items:flex-start;flex-direction:column}
+  .setting-row select{max-width:100%;width:100%}
+  .mini-metrics{grid-template-columns:1fr}
+  .mission3d-label b{display:none}
+  .mission3d-panel h3{font-size:12px}
+  .mission3d-panel p{font-size:8px;line-height:1.4}
+  .auto-build-button{font-size:8px}
+}

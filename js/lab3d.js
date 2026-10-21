@@ -23,7 +23,6 @@ let scene, camera, renderer, controls, boardGroup, componentGroup, wireGroup, gr
 let placementType = null;
 let selectedPartId = null;
 let isPaletteDragging = false;
-let suppressPaletteClick = false;
 let showGrid = true;
 let voltage = 5;
 let resistance = 220;
@@ -354,7 +353,6 @@ function bindUI() {
       button.classList.add("is-pending");
     });
     button.addEventListener("click", () => {
-      if (suppressPaletteClick) { suppressPaletteClick = false; return; }
       placementType = button.dataset.place;
       isPaletteDragging = false;
       document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === button));
@@ -382,7 +380,6 @@ function bindUI() {
   });
   canvas.addEventListener("pointerup", (event) => {
     if (placementType) {
-      if (isPaletteDragging) suppressPaletteClick = true;
       placePending(event);
       return;
     }

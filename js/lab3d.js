@@ -36,6 +36,7 @@ let dragCandidate = null;
 let draggingPartId = null;
 let dragOffset = new THREE.Vector3();
 let dragLastWireUpdate = 0;
+let ambientParticles = [];
 
 const boardWidth = 12;
 const boardDepth = 8;
@@ -88,6 +89,7 @@ function init() {
     gridGroup = new THREE.Group();
     boardGroup.add(gridGroup);
     buildBoard();
+    buildAmbientParticles();
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.065;
@@ -197,6 +199,21 @@ function buildBoard() {
     const slot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.01, 0.025), mat("#7c8799", 0.4, 0.2));
     slot.position.set(x, 0.031, z); boardGroup.add(slot);
   }
+}
+function buildAmbientParticles() {
+  const particleGroup = new THREE.Group();
+  const geometry = new THREE.SphereGeometry(0.025, 8, 6);
+  const colors = ["#d8cfff", "#f6c7bf", "#c7e8d6", "#c9d7fa"];
+  for (let i = 0; i < 26; i++) {
+    const material = new THREE.MeshBasicMaterial({ color: colors[i % colors.length], transparent: true, opacity: 0.4 + (i % 3) * 0.12 });
+    const particle = new THREE.Mesh(geometry, material);
+    particle.position.set((Math.sin(i * 8.17) * 7.1), 0.4 + (i % 6) * 0.42, Math.cos(i * 4.73) * 5.2);
+    particle.userData.floatOffset = i * 0.63;
+    particle.userData.baseY = particle.position.y;
+    particleGroup.add(particle);
+    ambientParticles.push(particle);
+  }
+  scene.add(particleGroup);
 }
 function makeTerminal(color = "#b8c3d2") {
   const group = new THREE.Group();
@@ -611,6 +628,15 @@ function rebuildWires() {
     dot.userData.flowCurve = curve; dot.userData.flowOffset = (index * 0.23) % 1;
     dot.visible = currentActive; wireGroup.add(dot); activeFlowDots.push(dot);
   });
+  const selectedPart = parts.find((part) => part.id === selectedPartId);
+  if (selectedPart) {
+    const radius = selectedPart.type === "battery" ? 1.2 : selectedPart.type === "capacitor" ? 0.86 : 0.98;
+    const halo = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.025, 8, 56), new THREE.MeshBasicMaterial({ color: "#a69ae9", transparent: true, opacity: 0.76 }));
+    halo.position.set(selectedPart.x, 0.19, selectedPart.z);
+    halo.rotation.x = Math.PI / 2;
+    halo.userData.isSelectedHalo = true;
+    wireGroup.add(halo);
+  }
   if (window._glitchSelectedTerminal) {
     const [id, term] = window._glitchSelectedTerminal.split(":");
     const part = parts.find((item) => item.id === id);
@@ -792,6 +818,19 @@ function animate() {
       }
     });
   }
+  ambientParticles.forEach((particle) => {
+    particle.position.y = particle.userData.baseY + Math.sin(time * 0.7 + particle.userData.floatOffset) * 0.11;
+    particle.position.x += Math.sin(time * 0.22 + particle.userData.floatOffset) * 0.0008;
+    particle.material.opacity = 0.25 + (Math.sin(time * 1.4 + particle.userData.floatOffset) + 1) * 0.16;
+  });
+  wireGroup.children.forEach((obj) => {
+    if (obj.userData.isSelectedHalo) {
+      obj.rotation.z = Math.sin(time * 0.65) * 0.025;
+      const pulse = 1 + Math.sin(time * 2.8) * 0.035;
+      obj.scale.set(pulse, pulse, pulse);
+      obj.material.opacity = 0.58 + (Math.sin(time * 3) + 1) * 0.12;
+    }
+  });
   controls?.update();
   renderer.render(scene, camera);
 }

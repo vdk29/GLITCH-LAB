@@ -187,7 +187,7 @@
     });
   }
 
-  function buildGraph() {
+  function buildGraph(ignoreLedDirection) {
     const graph = new Map();
     function addNode(node) { if (!graph.has(node)) graph.set(node, []); }
     function addEdge(from, to, component, direction) {
@@ -201,14 +201,15 @@
       if (part.type === "switch" && !part.closed) return;
       const a = terminalKey(part.id, part.terminals[0].id);
       const b = terminalKey(part.id, part.terminals[1].id);
-      if (part.type === "led") addEdge(a, b, part, "forward");
+      if (part.type === "led" && !ignoreLedDirection) addEdge(a, b, part, "forward");
+      else if (part.type === "led") addEdge(a, b, part, "both");
       else addEdge(a, b, part, "both");
     });
     return graph;
   }
 
-  function findPoweredPath() {
-    const graph = buildGraph();
+  function findPoweredPath(ignoreLedDirection) {
+    const graph = buildGraph(Boolean(ignoreLedDirection));
     const start = "battery:plus";
     const finish = "battery:minus";
     const queue = [{ node: start, path: [], visited: new Set([start]) }];
@@ -234,10 +235,16 @@
       showResult("warning", "Не хватает компонентов", "Для первого опыта добавь хотя бы один резистор и один светодиод.");
       return;
     }
-    const path = findPoweredPath();
+    const path = findPoweredPath(false);
     if (!path) {
+      const reversePolarityPath = findPoweredPath(true);
+      const hasLedAndResistor = reversePolarityPath && reversePolarityPath.some((part) => part.type === "led") && reversePolarityPath.some((part) => part.type === "resistor");
       render();
-      showResult("warning", "Цепь пока разомкнута", "Проверь провода: нужен непрерывный путь от + батарейки через резистор и светодиод к −. Замкни выключатель, если используешь его.");
+      if (hasLedAndResistor) {
+        showResult("error", "Проверь полярность светодиода", "Путь цепи собран, но ток пытается пройти через светодиод в обратном направлении. Поменяй местами провода на контактах A и K.");
+      } else {
+        showResult("warning", "Цепь пока разомкнута", "Проверь провода: нужен непрерывный путь от + батарейки через резистор и светодиод к −. Замкни выключатель, если используешь его.");
+      }
       return;
     }
     const pathLed = path.find((part) => part.type === "led");
@@ -260,7 +267,7 @@
         window.GLITCH_LAB.completeLesson("circuit", "first-led-circuit");
       }
     }
-    showResult("success", "Светодиод загорелся!", "Отлично! Цепь замкнута, полярность светодиода верная, а резистор ограничивает ток. Ты собрал первую работающую схему.");
+    showResult("success", "Светодиод загорелся!", "Отлично! Для модели 5 В, светодиода с падением около 2 В и резистора 220 Ω ток составит примерно 14 мА. Цепь замкнута, полярность верная, резистор ограничивает ток.");
   }
 
   function showResult(kind, title, description) {

@@ -78,6 +78,11 @@
   function renderLessons() {
     const grid = $("courseGrid");
     if (!grid) return;
+    const openModules = new Set(Array.from(grid.querySelectorAll(".lesson-list:not(.hidden)")).map(el => el.id.replace("lessons-","")));
+    const openQuizzes = new Set(Array.from(grid.querySelectorAll(".lesson-quiz[open]")).map(el => {
+      const row = el.closest(".lesson-row");
+      return row ? row.id.replace("lesson-","") : "";
+    }));
     const progress = window.GLITCH_LAB ? window.GLITCH_LAB.getProgress() : {completedLessons:0,totalLessons:23,coursePercent:0};
     $("lessonCount").textContent = progress.completedLessons;
     $("lessonProgress").style.width = progress.coursePercent + "%";
@@ -90,6 +95,16 @@
       const p = window.GLITCH_LAB ? window.GLITCH_LAB.getModuleProgress(m.id) : {completed:0,percent:0};
       return '<article class="course-card" id="course-'+m.id+'"><div class="course-number">'+m.number+'</div><div class="course-body"><div class="course-meta"><span class="course-badge">'+m.tag+'</span><span class="course-time">'+m.time+'</span></div><h3>'+m.title+'</h3><p>'+m.description+'</p><div class="course-bottom"><div class="course-progress"><div class="progress-track"><div class="progress-fill" style="width:'+p.percent+'%"></div></div><small>'+p.completed+' из '+m.lessons.length+' заданий завершено</small></div><button class="course-open" type="button" data-open-module="'+m.id+'">Открыть уроки ↓</button></div><div class="lesson-list hidden" id="lessons-'+m.id+'">'+m.lessons.map((lesson,i) => (() => { const quiz = quizzes[lesson[0]]; const choices = quiz ? quiz.options.map((option, optionIndex) => '<label class="quiz-option"><input type="radio" name="quiz-'+lesson[0]+'" value="'+optionIndex+'"><span>'+esc(option)+'</span></label>').join("") : ""; return '<article class="lesson-row" id="lesson-'+lesson[0]+'"><div class="lesson-row-number">'+(i+1)+'</div><div class="lesson-row-content"><strong>'+esc(lesson[1])+'</strong><p>'+esc(lesson[2])+'</p><details class="lesson-quiz"><summary>Проверить себя · мини-тест</summary><div class="quiz-content"><p class="quiz-question">'+esc(quiz ? quiz.q : "Повтори материал урока.")+'</p>'+choices+'<button type="button" class="quiz-check" data-check-quiz="'+lesson[0]+'" data-module="'+m.id+'">Проверить ответ</button><p class="quiz-feedback" data-quiz-feedback="'+lesson[0]+'" aria-live="polite"></p></div></details></div></article>'; })()).join("")+'</div></div></article>';
     }).join("");
+    openModules.forEach(moduleId => {
+      const list = $("lessons-" + moduleId);
+      const button = grid.querySelector('[data-open-module="' + moduleId + '"]');
+      if (list) list.classList.remove("hidden");
+      if (button) button.textContent = "Свернуть уроки ↑";
+    });
+    openQuizzes.forEach(lessonId => {
+      const details = grid.querySelector("#lesson-" + lessonId + " .lesson-quiz");
+      if (details) details.open = true;
+    });
     grid.querySelectorAll("[data-open-module]").forEach(btn => btn.addEventListener("click", () => {
       const list = $("lessons-"+btn.dataset.openModule);
       const closed = list.classList.toggle("hidden");

@@ -418,7 +418,9 @@
     showResult("", "Провода убраны", "Компоненты остались на плате. Соедини их заново.");
   });
   $("resetButton").addEventListener("click", () => {
-    parts = [{ id: "battery", type: "battery", title: "Батарейка 5 В", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] }];
+    batteryVoltage = 5;
+    resistorOhms = 220;
+    parts = [{ id: "battery", type: "battery", title: "Батарейка 5 В", subtitle: "Источник постоянного напряжения", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] }];
     nextId = 1;
     wires = [];
     selectedTerminal = null;

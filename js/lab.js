@@ -17,7 +17,7 @@
   let wires = [];
   let solved = false;
   let parts = [
-    { id: "battery", type: "battery", title: "Батарейка 5 В", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] }
+    { id: "battery", type: "battery", title: "Батарейка 5 В", subtitle: "Источник постоянного напряжения", terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }] }
   ];
 
   const types = {
@@ -55,6 +55,7 @@
         id: "battery",
         type: "battery",
         title: "Батарейка " + batteryVoltage + " В",
+        subtitle: "Источник постоянного напряжения",
         terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }]
       }];
 

@@ -16,7 +16,7 @@
 .scene-title{display:flex;align-items:center;gap:10px}.scene-title strong,.scene-title small{display:block}.scene-title strong{font-size:13px;color:#3f4960}.scene-title small{font-size:10px;color:#9aa4b6;margin-top:4px}
 .scene-live-dot{width:9px;height:9px;border-radius:50%;background:#8bd0b1;box-shadow:0 0 0 5px #e9f8f0}
 .scene-tools{display:flex;gap:7px}.scene-tool{border:1px solid #e9edf5;background:#fff;border-radius:10px;color:#78849a;padding:8px 10px;font:inherit;font-size:11px;cursor:pointer}.scene-tool:hover,.scene-tool[aria-pressed=true]{background:#f1f2ff;color:#8379cd;border-color:#deddf8}
-.scene-viewport{height:clamp(440px,54vw,650px);position:relative;overflow:hidden;background:radial-gradient(ellipse at 48% 46%,#fff 0%,#f5f7fd 52%,#edf1fa 100%);touch-action:pan-y}
+.scene-viewport{height:clamp(440px,54vw,650px);position:relative;overflow:hidden;background:radial-gradient(ellipse at 48% 46%,#fff 0%,#f5f7fd 52%,#edf1fa 100%);touch-action:none}
 #circuitCanvas{display:block;width:100%;height:100%;outline:none;cursor:grab;touch-action:pan-y}
 #circuitCanvas:active{cursor:grabbing}
 .scene-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;background:rgba(247,249,253,.96);z-index:4;transition:opacity .35s,visibility .35s}

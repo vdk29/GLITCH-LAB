@@ -70,3 +70,14 @@
 .circuit-settings select{width:100%;min-width:0;border:1px solid #e2e8f2;border-radius:9px;background:#fff;color:#4e5b72;padding:9px 7px;font:inherit;font-size:11px;outline-color:#9eaff0}
 .settings-hint{font-size:10px;line-height:1.6;color:#929daf;margin:9px 2px 13px}
 @media(max-width:650px){.circuit-settings{gap:7px;padding:10px}.circuit-settings label span{font-size:9px}.circuit-settings select{font-size:10px}}
+
+
+/* Quick-start experiments and animated current flow */
+.mission-presets{display:grid;gap:8px;margin-top:14px}
+.preset-button{width:100%;justify-content:center;min-height:42px;font-size:11px;padding:10px}
+.preset-error-button{justify-self:start;padding:5px 0;color:#bd7771;font-size:10px}
+.preset-caption{font-size:9px;line-height:1.5;color:#9aa3b3;margin:6px 0 0}
+.wire-layer .wire-path.wire-current{stroke-dasharray:7 8;animation:glitch-current-flow 0.75s linear infinite;stroke-width:4;filter:drop-shadow(0 0 3px rgba(101,145,232,.35))}
+.wire-layer .wire-path.wire-blue.wire-current{filter:drop-shadow(0 0 3px rgba(105,177,205,.4))}
+@keyframes glitch-current-flow{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){.wire-layer .wire-path.wire-current{animation:none;stroke-dasharray:3 5}}

@@ -12,6 +12,8 @@
   const CIRCUIT_STORAGE_KEY = "glitchLabSavedCircuit";
   let nextId = 1;
   let selectedTerminal = null;
+  let batteryVoltage = 5;
+  let resistorOhms = 220;
   let wires = [];
   let solved = false;
   let parts = [
@@ -30,6 +32,8 @@
     try {
       localStorage.setItem(CIRCUIT_STORAGE_KEY, JSON.stringify({
         nextId,
+        batteryVoltage,
+        resistorOhms,
         parts: parts.map((part) => ({ id: part.id, type: part.type, closed: Boolean(part.closed) })),
         wires
       }));
@@ -45,10 +49,12 @@
       const saved = JSON.parse(raw);
       if (!saved || !Array.isArray(saved.parts) || !Array.isArray(saved.wires)) return;
 
+      batteryVoltage = [3, 5, 9].includes(Number(saved.batteryVoltage)) ? Number(saved.batteryVoltage) : 5;
+      resistorOhms = [100, 220, 330, 1000].includes(Number(saved.resistorOhms)) ? Number(saved.resistorOhms) : 220;
       const restoredParts = [{
         id: "battery",
         type: "battery",
-        title: "Батарейка 5 В",
+        title: "Батарейка " + batteryVoltage + " В",
         terminals: [{ id: "plus", label: "+", positive: true }, { id: "minus", label: "−" }]
       }];
 
@@ -105,6 +111,8 @@
   function render() {
     grid.innerHTML = "";
     parts.forEach((part) => {
+      if (part.type === "resistor") part.subtitle = resistorOhms + " Ω · ограничивает ток";
+      if (part.type === "battery") part.title = "Батарейка " + batteryVoltage + " В";
       const card = document.createElement("article");
       card.className = "board-component" + (part.type === "led" && part.lit ? " is-lit" : "") + (part.type === "switch" && part.closed ? " switch-closed" : "");
       card.dataset.part = part.id;
@@ -170,6 +178,12 @@
       grid.appendChild(card);
     });
     $("partCount").textContent = countText(parts.length);
+    const batteryTitle = $("batteryTitle");
+    if (batteryTitle) batteryTitle.textContent = "Батарейка " + batteryVoltage + " В";
+    const voltageControl = $("batteryVoltageControl");
+    const resistorControl = $("resistorValueControl");
+    if (voltageControl) voltageControl.value = String(batteryVoltage);
+    if (resistorControl) resistorControl.value = String(resistorOhms);
     requestAnimationFrame(drawWires);
   }
 
@@ -338,9 +352,20 @@
       showResult("error", "Нет ограничения тока", "Не подключай светодиод напрямую к батарейке. Добавь резистор последовательно — он ограничивает ток и защищает светодиод.");
       return;
     }
-    pathLed.lit = true;
     const seriesResistors = Math.max(1, path.filter((part) => part.type === "resistor").length);
-    const estimatedCurrent = (3000 / (220 * seriesResistors)).toFixed(1).replace(".", ",");
+    const currentMA = Math.max(0, (batteryVoltage - 2) / (resistorOhms * seriesResistors) * 1000);
+    const estimatedCurrent = currentMA.toFixed(1).replace(".", ",");
+    if (currentMA <= 0) {
+      render();
+      showResult("warning", "Не хватает напряжения", "В модели светодиоду нужно около 2 В. Увеличь напряжение источника, чтобы увидеть ток.");
+      return;
+    }
+    if (currentMA > 20) {
+      render();
+      showResult("error", "Слишком большой ток", "Расчётный ток — " + estimatedCurrent + " мА. Для учебной модели это выше условного предела 20 мА. Увеличь сопротивление или уменьши напряжение, иначе реальный светодиод может перегреться.");
+      return;
+    }
+    pathLed.lit = true;
     render();
     if (!solved) {
       solved = true;
@@ -348,7 +373,7 @@
         window.GLITCH_LAB.completeLesson("circuit", "first-led-circuit");
       }
     }
-    showResult("success", "Светодиод загорелся!", "Отлично! Для модели 5 В и светодиода с падением около 2 В расчётный ток при " + seriesResistors + " резисторе(ах) по 220 Ω — около " + estimatedCurrent + " мА. Цепь замкнута, полярность верная, резисторы ограничивают ток.");
+    showResult("success", "Светодиод загорелся!", "При источнике " + batteryVoltage + " В, падении на светодиоде около 2 В и " + seriesResistors + " резисторе(ах) по " + resistorOhms + " Ω расчётный ток — " + estimatedCurrent + " мА. Цепь замкнута, полярность верная, ток в безопасном диапазоне модели.");
   }
 
   function showResult(kind, title, description) {
@@ -370,6 +395,18 @@
     button.addEventListener("click", () => addPart(button.dataset.add));
   });
   $("simulateButton").addEventListener("click", simulate);
+  $("batteryVoltageControl").addEventListener("change", (event) => {
+    batteryVoltage = Number(event.target.value);
+    saveCircuit();
+    render();
+    showResult("", "Напряжение изменено", "Источник теперь выдаёт " + batteryVoltage + " В. Запусти симуляцию, чтобы пересчитать ток.");
+  });
+  $("resistorValueControl").addEventListener("change", (event) => {
+    resistorOhms = Number(event.target.value);
+    saveCircuit();
+    render();
+    showResult("", "Сопротивление изменено", "Каждый резистор теперь имеет номинал " + resistorOhms + " Ω. Чем выше сопротивление, тем меньше ток при том же напряжении.");
+  });
   $("clearWiresButton").addEventListener("click", () => {
     wires = [];
     selectedTerminal = null;
@@ -391,6 +428,8 @@
     showResult("", "Схема сброшена", "Добавь резистор и светодиод, затем собери свою первую цепь.");
   });
 
+  const wireHelp = $("connectionHint");
+  if (wireHelp) wireHelp.textContent = "Нажми на контакт, затем на контакт другой детали. Чтобы удалить провод, нажми на сам провод.";
   window.addEventListener("resize", drawWires);
   window.addEventListener("load", drawWires);
   restoreCircuit();

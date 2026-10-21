@@ -32,6 +32,10 @@ let parts = [];
 let wires = [];
 let nextId = 1;
 let pointerDown = null;
+let dragCandidate = null;
+let draggingPartId = null;
+let dragOffset = new THREE.Vector3();
+let dragLastWireUpdate = 0;
 
 const boardWidth = 12;
 const boardDepth = 8;
@@ -374,17 +378,86 @@ function bindUI() {
   });
   canvas.addEventListener("pointermove", (event) => {
     if (isPaletteDragging) $("sceneDropHint").classList.add("visible");
+    if (!dragCandidate || placementType) return;
+    const moved = Math.hypot(event.clientX - dragCandidate.startX, event.clientY - dragCandidate.startY);
+    if (!draggingPartId && moved > 6) {
+      draggingPartId = dragCandidate.id;
+      const part = parts.find((item) => item.id === draggingPartId);
+      const position = hitBoard(event);
+      if (!part || !position) { draggingPartId = null; return; }
+      dragOffset.set(part.x - position.x, 0, part.z - position.z);
+      controls.enabled = false;
+      selectedPartId = draggingPartId;
+      updateSelection();
+      canvas.style.cursor = "grabbing";
+      $("sceneHint").textContent = "Перемещай деталь по плате — провода последуют за ней";
+      const root = componentObjects.get(draggingPartId);
+      if (root) root.scale.setScalar(1.06);
+    }
+    if (draggingPartId) {
+      const position = hitBoard(event);
+      const part = parts.find((item) => item.id === draggingPartId);
+      const root = componentObjects.get(draggingPartId);
+      if (!position || !part || !root) return;
+      part.x = THREE.MathUtils.clamp(position.x + dragOffset.x, -5.0, 5.0);
+      part.z = THREE.MathUtils.clamp(position.z + dragOffset.z, -2.85, 2.85);
+      root.position.x = part.x;
+      root.position.z = part.z;
+      const now = performance.now();
+      if (now - dragLastWireUpdate > 45) {
+        dragLastWireUpdate = now;
+        rebuildWires();
+      }
+    }
+  });
+  canvas.addEventListener("pointercancel", () => {
+    if (draggingPartId) {
+      draggingPartId = null; controls.enabled = true; canvas.style.cursor = "";
+      rebuildAll();
+    }
+    dragCandidate = null; pointerDown = null;
   });
   canvas.addEventListener("pointerdown", (event) => {
     pointerDown = { x: event.clientX, y: event.clientY, time: Date.now() };
+    dragCandidate = null;
+    if (placementType) return;
+    getCanvasPoint(event);
+    const hits = raycaster.intersectObjects([...componentObjects.values()], true);
+    if (!hits.length) return;
+    let node = hits[0].object;
+    while (node && !node.userData.partId) node = node.parent;
+    if (!node?.userData.partId) return;
+    const part = parts.find((item) => item.id === node.userData.partId);
+    if (!part) return;
+    const position = hitBoard(event);
+    if (!position) return;
+    dragCandidate = { id: part.id, startX: event.clientX, startY: event.clientY, offsetX: part.x - position.x, offsetZ: part.z - position.z };
   });
   canvas.addEventListener("pointerup", (event) => {
     if (placementType) {
       placePending(event);
+      pointerDown = null; dragCandidate = null;
       return;
     }
-    if (pointerDown && Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y) > 7) return;
+    if (draggingPartId) {
+      const part = parts.find((item) => item.id === draggingPartId);
+      const position = hitBoard(event);
+      if (part && position) {
+        part.x = THREE.MathUtils.clamp(snap(position.x + dragOffset.x), -5.0, 5.0);
+        part.z = THREE.MathUtils.clamp(snap(position.z + dragOffset.z), -2.85, 2.85);
+      }
+      draggingPartId = null; dragCandidate = null; pointerDown = null;
+      controls.enabled = true;
+      canvas.style.cursor = "";
+      save(); rebuildAll(); updateSelection();
+      result("", "Деталь перемещена", "Компонент привязан к сетке, а подключённые провода обновлены.");
+      return;
+    }
+    if (pointerDown && Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y) > 7) {
+      pointerDown = null; dragCandidate = null; return;
+    }
     pointerDown = null;
+    dragCandidate = null;
     getCanvasPoint(event);
     const terminalsHit = raycaster.intersectObjects(terminalObjects, true);
     if (terminalsHit.length) {

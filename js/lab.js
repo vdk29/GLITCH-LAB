@@ -161,6 +161,7 @@
         toggle.title = part.closed ? "Разомкнуть выключатель" : "Замкнуть выключатель";
         toggle.setAttribute("aria-label", toggle.title);
         toggle.addEventListener("click", () => {
+          currentFlow = false;
           part.closed = !part.closed;
           part.lit = false;
           saveCircuit();
@@ -269,6 +270,7 @@
       hitPath.setAttribute("title", "Нажми, чтобы удалить этот провод");
       hitPath.addEventListener("click", (event) => {
         event.stopPropagation();
+        currentFlow = false;
         wires = wires.filter((item) => item !== wire);
         selectedTerminal = null;
         parts.forEach((part) => { part.lit = false; });
@@ -407,12 +409,14 @@
   });
   $("simulateButton").addEventListener("click", simulate);
   $("batteryVoltageControl").addEventListener("change", (event) => {
+    currentFlow = false;
     batteryVoltage = Number(event.target.value);
     saveCircuit();
     render();
     showResult("", "Напряжение изменено", "Источник теперь выдаёт " + batteryVoltage + " В. Запусти симуляцию, чтобы пересчитать ток.");
   });
   $("resistorValueControl").addEventListener("change", (event) => {
+    currentFlow = false;
     resistorOhms = Number(event.target.value);
     saveCircuit();
     render();

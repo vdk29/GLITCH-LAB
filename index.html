@@ -1,0 +1,610 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#080910">
+<title>GLITCH LAB — Particle Engine</title>
+
+<style>
+:root {
+  --bg: #080910;
+  --panel: #11121c;
+  --border: #292a3a;
+  --orange: #ff8548;
+  --purple: #a78bfa;
+  --text: #f4f3ff;
+  --muted: #85869d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+button, input { font: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+.app {
+  max-width: 760px;
+  margin: auto;
+  padding: 22px 16px 35px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.logo {
+  width: 43px;
+  height: 43px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #ff8548, #9b5cff);
+  color: white;
+  font-size: 23px;
+  font-weight: 900;
+  box-shadow: 0 0 25px #ff854833;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 1.7px;
+  margin-top: 5px;
+}
+
+.status {
+  color: #80f0b4;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.intro { margin-bottom: 18px; }
+
+.intro h2 {
+  font-size: clamp(26px, 7vw, 38px);
+  line-height: 1.12;
+  margin: 0 0 9px;
+  letter-spacing: -1.3px;
+}
+
+.intro h2 span {
+  color: var(--orange);
+}
+
+.intro p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  height: min(53vh, 430px);
+  min-height: 300px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #07080e;
+  box-shadow: 0 15px 60px #0005;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.stage-label {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  font-size: 9px;
+  letter-spacing: 1.7px;
+  color: #8d8da7;
+  pointer-events: none;
+}
+
+.counter {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  color: #999ab1;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.hint {
+  position: absolute;
+  right: 13px;
+  bottom: 14px;
+  color: #999ab1;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.panel {
+  margin-top: 13px;
+  padding: 17px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.section-title {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  margin-bottom: 13px;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.mode {
+  background: #191a27;
+  border: 1px solid #303144;
+  border-radius: 11px;
+  color: #b6b5ca;
+  padding: 12px 3px;
+  font-size: 11px;
+}
+
+.mode.active {
+  color: #ffb18b;
+  background: #38241f;
+  border-color: #ff8548;
+  box-shadow: inset 0 0 15px #ff85480c;
+}
+
+.control { margin-top: 21px; }
+
+.control-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.control-head strong {
+  color: var(--orange);
+  font-size: 13px;
+}
+
+input[type="range"] {
+  display: block;
+  width: 100%;
+  accent-color: var(--orange);
+  height: 5px;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.action {
+  padding: 14px 7px;
+  border-radius: 12px;
+  border: 1px solid #343448;
+  color: var(--text);
+  background: #1b1c2a;
+  font-size: 12px;
+}
+
+.action.primary {
+  color: #171019;
+  border: none;
+  font-weight: 750;
+  background: linear-gradient(100deg, #ff9b5f, #c59aff);
+}
+
+footer {
+  padding: 20px 3px 0;
+  display: flex;
+  justify-content: space-between;
+  color: #686980;
+  font-size: 10px;
+  letter-spacing: .5px;
+}
+
+@media (max-width: 390px) {
+  .app { padding: 17px 12px 28px; }
+  .panel { padding: 14px; }
+  .mode { font-size: 10px; }
+  .hint { font-size: 9px; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="logo">G</div>
+      <div>
+        <h1>GLITCH LAB</h1>
+        <div class="subtitle">PARTICLE ENGINE / 001</div>
+      </div>
+    </div>
+    <div class="status" id="status">● SYSTEM ONLINE</div>
+  </header>
+
+  <section class="intro">
+    <h2>Управляй<br><span>хаосом.</span></h2>
+    <p>Создавай собственные цифровые миры.<br>Коснись пространства и измени его физику.</p>
+  </section>
+
+  <section class="stage" id="stage">
+    <canvas id="world"></canvas>
+    <div class="stage-label">LIVE SIMULATION</div>
+    <div class="counter" id="counter">PARTICLES: 400</div>
+    <div class="hint">TOUCH TO INTERACT ↗</div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title">01 / РЕЖИМ ФИЗИКИ</div>
+
+    <div class="modes">
+      <button class="mode active" data-mode="gravity">◉ Тяготение</button>
+      <button class="mode" data-mode="vortex">↻ Вихрь</button>
+      <button class="mode" data-mode="chaos">⁕ Хаос</button>
+      <button class="mode" data-mode="repel">✳ Импульс</button>
+    </div>
+
+    <div class="control">
+      <div class="control-head">
+        <label for="power">Сила воздействия</label>
+        <strong id="powerValue">65%</strong>
+      </div>
+      <input id="power" type="range" min="10" max="100" value="65">
+      <div class="range-labels">
+        <span>Мягко</span><span>Экстремально</span>
+      </div>
+    </div>
+
+    <div class="control">
+      <div class="control-head">
+        <label for="amount">Количество частиц</label>
+        <strong id="amountValue">400</strong>
+      </div>
+      <input id="amount" type="range" min="100" max="1000" step="50" value="400">
+      <div class="range-labels">
+        <span>100</span><span>1000</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="action" id="pause">Ⅱ Пауза</button>
+      <button class="action primary" id="random">✦ Новый мир</button>
+      <button class="action" id="clear">◌ Перезапуск</button>
+      <button class="action" id="save">↗ Сохранить арт</button>
+    </div>
+  </section>
+
+  <footer>
+    <span>GLITCH LAB © 2026</span>
+    <span>BUILT WITH JAVASCRIPT</span>
+  </footer>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("world");
+  const ctx = canvas.getContext("2d");
+  const stage = document.getElementById("stage");
+
+  const powerInput = document.getElementById("power");
+  const amountInput = document.getElementById("amount");
+  const powerValue = document.getElementById("powerValue");
+  const amountValue = document.getElementById("amountValue");
+  const counter = document.getElementById("counter");
+  const pauseButton = document.getElementById("pause");
+
+  const colors = [
+    [255, 132, 72],
+    [175, 125, 255],
+    [80, 218, 240],
+    [255, 228, 205]
+  ];
+
+  let width = 0;
+  let height = 0;
+  let dpr = 1;
+  let particles = [];
+  let mode = "gravity";
+  let power = 0.65;
+  let paused = false;
+  let lastTime = 0;
+  let animationId = 0;
+
+  const pointer = {
+    x: 0,
+    y: 0,
+    active: false,
+    down: false
+  };
+
+  function resize() {
+    const rect = stage.getBoundingClientRect();
+
+    width = rect.width;
+    height = rect.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    createParticles(Number(amountInput.value));
+  }
+
+  function createParticles(amount) {
+    particles = [];
+
+    for (let i = 0; i < amount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.sqrt(Math.random()) *
+        Math.min(width, height) * 0.43;
+
+      particles.push({
+        x: width / 2 + Math.cos(angle) * radius,
+        y: height / 2 + Math.sin(angle) * radius,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        size: Math.random() * 1.5 + 0.45,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        phase: Math.random() * Math.PI * 2,
+        seed: Math.random() * 100
+      });
+    }
+
+    counter.textContent = "PARTICLES: " + particles.length;
+  }
+
+  function setPointer(event) {
+    const rect = canvas.getBoundingClientRect();
+
+    pointer.x = event.clientX - rect.left;
+    pointer.y = event.clientY - rect.top;
+  }
+
+  canvas.addEventListener("pointerdown", event => {
+    setPointer(event);
+    pointer.active = true;
+    pointer.down = true;
+    canvas.setPointerCapture(event.pointerId);
+  });
+
+  canvas.addEventListener("pointermove", event => {
+    setPointer(event);
+    pointer.active = true;
+  });
+
+  canvas.addEventListener("pointerup", () => {
+    pointer.down = false;
+  });
+
+  canvas.addEventListener("pointercancel", () => {
+    pointer.down = false;
+    pointer.active = false;
+  });
+
+  canvas.addEventListener("pointerleave", () => {
+    if (!pointer.down) pointer.active = false;
+  });
+
+  function draw(time) {
+    animationId = requestAnimationFrame(draw);
+
+    const dt = Math.min((time - (lastTime || time)) / 16.67, 2);
+    lastTime = time;
+
+    if (paused) return;
+
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(7, 8, 14, 0.22)";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.globalCompositeOperation = "lighter";
+
+    const cx = width / 2;
+    const cy = height / 2;
+    const force = power * (pointer.down ? 2.2 : 1);
+
+    for (const p of particles) {
+      let tx = cx;
+      let ty = cy;
+
+      if (pointer.active) {
+        tx = pointer.x;
+        ty = pointer.y;
+      }
+
+      const dx = tx - p.x;
+      const dy = ty - p.y;
+      const distanceSq = dx * dx + dy * dy + 100;
+      const distance = Math.sqrt(distanceSq);
+
+      if (mode === "gravity") {
+        const f = force * 0.12 / distance;
+        p.vx += dx * f * dt;
+        p.vy += dy * f * dt;
+      }
+
+      if (mode === "vortex") {
+        const f = force * 0.005 / distance;
+        p.vx += (-dy * f + dx * f * 0.12) * dt;
+        p.vy += (dx * f + dy * f * 0.12) * dt;
+      }
+
+      if (mode === "repel") {
+        const f = force * 0.15 / distance;
+        p.vx -= dx * f * dt;
+        p.vy -= dy * f * dt;
+      }
+
+      if (mode === "chaos") {
+        p.vx += Math.sin(time * 0.001 + p.seed + p.y * 0.018)
+          * 0.055 * force * dt;
+        p.vy += Math.cos(time * 0.0012 + p.seed + p.x * 0.018)
+          * 0.055 * force * dt;
+      }
+
+      p.vx += Math.sin(p.phase + time * 0.0005) * 0.008 * dt;
+      p.vy += Math.cos(p.phase + time * 0.0004) * 0.008 * dt;
+
+      p.vx *= Math.pow(0.992, dt);
+      p.vy *= Math.pow(0.992, dt);
+
+      const maxSpeed = 5 + power * 5;
+
+      p.vx = Math.max(-maxSpeed, Math.min(maxSpeed, p.vx));
+      p.vy = Math.max(-maxSpeed, Math.min(maxSpeed, p.vy));
+
+      const oldX = p.x;
+      const oldY = p.y;
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (p.x < -5) p.x = width + 5;
+      if (p.x > width + 5) p.x = -5;
+      if (p.y < -5) p.y = height + 5;
+      if (p.y > height + 5) p.y = -5;
+
+      const [r, g, b] = p.color;
+
+      ctx.strokeStyle = `rgba(${r},${g},${b},0.32)`;
+      ctx.lineWidth = p.size * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(oldX, oldY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+
+      ctx.fillStyle = `rgba(${r},${g},${b},0.92)`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  document.querySelectorAll(".mode").forEach(button => {
+    button.addEventListener("click", () => {
+      mode = button.dataset.mode;
+
+      document.querySelectorAll(".mode").forEach(b => {
+        b.classList.toggle("active", b === button);
+      });
+    });
+  });
+
+  powerInput.addEventListener("input", () => {
+    power = Number(powerInput.value) / 100;
+    powerValue.textContent = powerInput.value + "%";
+  });
+
+  amountInput.addEventListener("input", () => {
+    amountValue.textContent = amountInput.value;
+    createParticles(Number(amountInput.value));
+  });
+
+  pauseButton.addEventListener("click", () => {
+    paused = !paused;
+    pauseButton.textContent = paused ? "▶ Продолжить" : "Ⅱ Пауза";
+
+    document.getElementById("status").textContent =
+      paused ? "Ⅱ PAUSED" : "● SYSTEM ONLINE";
+  });
+
+  document.getElementById("random").addEventListener("click", () => {
+    createParticles(Number(amountInput.value));
+
+    ctx.clearRect(0, 0, width, height);
+
+    mode = ["gravity", "vortex", "chaos", "repel"][
+      Math.floor(Math.random() * 4)
+    ];
+
+    document.querySelectorAll(".mode").forEach(b => {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+  });
+
+  document.getElementById("clear").addEventListener("click", () => {
+    createParticles(Number(amountInput.value));
+    ctx.clearRect(0, 0, width, height);
+  });
+
+  document.getElementById("save").addEventListener("click", () => {
+    const image = document.createElement("canvas");
+    image.width = canvas.width;
+    image.height = canvas.height;
+
+    const out = image.getContext("2d");
+    out.fillStyle = "#080910";
+    out.fillRect(0, 0, image.width, image.height);
+    out.drawImage(canvas, 0, 0);
+
+    const link = document.createElement("a");
+    link.download = "glitch-lab-art.png";
+    link.href = image.toDataURL("image/png");
+    link.click();
+  });
+
+  window.addEventListener("resize", resize);
+
+  resize();
+  animationId = requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

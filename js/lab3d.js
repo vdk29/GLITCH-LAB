@@ -159,7 +159,7 @@ function buildBoard() {
   boardRim.position.y = -0.035; boardRim.castShadow = true; boardRim.receiveShadow = true; boardGroup.add(boardRim);
   const powerRailRed = mat("#df9296", 0.58);
   const powerRailBlue = mat("#8ba7dc", 0.58);
-  for (const z of [-3.0, 3.0]) {
+  for (const z of [-boardDepth / 2 + 1.0, boardDepth / 2 - 1.0]) {
     const railA = new THREE.Mesh(new THREE.BoxGeometry(boardWidth - 0.5, 0.022, 0.055), powerRailRed);
     railA.position.set(0, 0.151, z - 0.065); boardGroup.add(railA);
     const railB = new THREE.Mesh(new THREE.BoxGeometry(boardWidth - 0.5, 0.022, 0.055), powerRailBlue);
@@ -204,7 +204,7 @@ function buildBoard() {
   ctx.fillStyle = "#e5f5ec"; ctx.font = "20px Arial"; ctx.fillText("ELECTRONICS · EXPERIMENT BOARD", 12, 88);
   const texture = new THREE.CanvasTexture(labelCanvas); texture.colorSpace = THREE.SRGBColorSpace;
   const label = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 0.82), new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide }));
-  label.rotation.x = -Math.PI / 2; label.position.set(0, 0.145, 3.52); boardGroup.add(label);
+  label.rotation.x = -Math.PI / 2; label.position.set(0, 0.145, boardDepth / 2 - 0.48); boardGroup.add(label);
   const gridMaterial = new THREE.LineBasicMaterial({ color: "#f1fff6", transparent: true, opacity: 0.34 });
   const bounds = boardBounds();
   for (let x = bounds.minX; x <= bounds.maxX + 0.001; x += 0.72) {
@@ -464,6 +464,7 @@ function rebuildBoardSize(width, depth) {
   });
   const maxSize = Math.max(boardWidth, boardDepth);
   camera.position.set(maxSize * 0.88, maxSize * 0.92, maxSize * 1.04);
+  controls.maxDistance = Math.max(20, maxSize * 1.8);
   controls.target.set(0, 0, 0);
   controls.update();
   rebuildAll();

@@ -271,6 +271,9 @@ function componentMaterials(type) {
   return { body: mat("#9eafd2", 0.24, 0.12), dark: mat("#7186b5", 0.3), metal: mat("#b9c2ce", 0.23, 0.7) };
 }
 function makePartMesh(part, targetGroup = componentGroup, register = true) {
+  // Defensive guard: Array.forEach passes (value, index, array), not our optional arguments.
+  if (!targetGroup || typeof targetGroup.add !== "function") targetGroup = componentGroup;
+  if (typeof register !== "boolean") register = true;
   const root = new THREE.Group();
   root.userData.partId = part.id;
   const m = componentMaterials(part.type);
@@ -390,9 +393,8 @@ function getCanvasPoint(event) {
   return rect;
 }
 function hitBoard(event, shouldSnap = true) {
-  // Use the viewport's coordinates: overlays and mobile layout can make the canvas
-  // bounding box differ slightly from the visible drop area.
-  const rect = viewport.getBoundingClientRect();
+  // Raycasting coordinates must match the actual WebGL canvas, on desktop and touch devices.
+  const rect = canvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -506,8 +508,14 @@ function bindUI() {
       dragGhost.style.left = event.clientX + "px";
       dragGhost.style.top = event.clientY + "px";
       dragGhost.setAttribute("aria-hidden", "true");
-      const previewCanvas = createComponentPreview(button.dataset.place);
-      dragGhost.appendChild(previewCanvas);
+      try {
+        const previewCanvas = createComponentPreview(button.dataset.place);
+        dragGhost.appendChild(previewCanvas);
+      } catch (previewError) {
+        console.warn("GLITCH LAB: 3D drag preview unavailable; using a simple fallback", previewError);
+        dragGhost.textContent = palette[button.dataset.place]?.title || "Компонент";
+        dragGhost.style.cssText += ";width:92px;height:54px;padding:8px;border-radius:14px;background:#fff;color:#59647a;font:600 12px system-ui;justify-content:center;align-items:center;border:1px solid #dddaf4;box-shadow:0 12px 30px rgba(70,70,110,.18)";
+      }
       document.body.appendChild(dragGhost);
       button.classList.add("is-pending");
     });

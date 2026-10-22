@@ -498,7 +498,8 @@ function bindUI() {
     button.addEventListener("pointerdown", (event) => {
       if (event.button !== undefined && event.button !== 0) return;
       event.preventDefault();
-      palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button };
+      palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button, pointerId: event.pointerId };
+      try { button.setPointerCapture(event.pointerId); } catch (_) {}
       placementType = button.dataset.place;
       dragGhost = document.createElement("div");
       dragGhost.className = "dragging-component-ghost ghost-" + button.dataset.place;
@@ -550,7 +551,7 @@ function bindUI() {
       $("sceneDropHint").classList.remove("visible");
       setPlacementTargets(false);
       if (drag.moved) {
-        const rect = canvas.getBoundingClientRect();
+        const rect = viewport.getBoundingClientRect();
         const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
         if (inside) {
           placementType = drag.type;

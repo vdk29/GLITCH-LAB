@@ -278,6 +278,7 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     add(new THREE.TorusGeometry(0.29, 0.025, 8, 32), mat("#f6c7c8", 0.24), 0, 0.7, 0).rotation.x = Math.PI / 2;
     add(new THREE.SphereGeometry(0.07, 12, 8), mat("#fff2f2", 0.18), -0.12, 0.99, -0.15);
     dome.userData.isLedDome = true;
+    dome.userData.baseScale = dome.scale.clone();
   } else if (part.type === "resistor") {
     cylinderBetween([-0.72, 0.16, 0], [-0.34, 0.4, 0], 0.032, m.metal);
     cylinderBetween([0.34, 0.4, 0], [0.72, 0.16, 0], 0.032, m.metal);
@@ -962,7 +963,13 @@ function animate() {
       }
     });
   }
-  componentObjects.forEach((root) => {
+  componentObjects.forEach((root, id) => {
+    const part = parts.find((item) => item.id === id);
+    root.traverse((obj) => {
+      if (!obj.userData.isLedDome || !obj.userData.baseScale) return;
+      const pulse = part?.lit ? 1 + (Math.sin(time * 8) + 1) * 0.035 : 1;
+      obj.scale.copy(obj.userData.baseScale).multiplyScalar(pulse);
+    });
     if (root.userData.spawnAt) {
       const progress = Math.min(1, (performance.now() - root.userData.spawnAt) / 330);
       const eased = 1 - Math.pow(1 - progress, 3);

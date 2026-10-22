@@ -316,14 +316,16 @@ function componentMaterials(type) {
 function makePartMesh(part, targetGroup = componentGroup, register = true) {
   if (!targetGroup || typeof targetGroup.add !== "function") targetGroup = componentGroup;
   if (typeof register !== "boolean") register = true;
+
   const root = new THREE.Group();
   root.userData.partId = part.id;
   const m = componentMaterials(part.type);
-  const steel = mat("#aeb8c3", 0.2, 0.94);
-  const brightSteel = mat("#e0e5eb", 0.16, 0.98);
-  const darkSteel = mat("#525e6c", 0.3, 0.76);
-  const black = mat("#202833", 0.34, 0.2);
-  const ceramic = mat("#e4c9a4", 0.55, 0.02);
+  const steel = mat("#c5cbd2", 0.19, 0.94);
+  const polishedSteel = mat("#e9edf1", 0.14, 0.98);
+  const darkSteel = mat("#59616b", 0.28, 0.78);
+  const black = mat("#171b20", 0.32, 0.16);
+  const ceramic = mat("#d9bd91", 0.58, 0.01);
+
   const add = (geometry, material, x, y, z, parent = root) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -332,9 +334,8 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     parent.add(mesh);
     return mesh;
   };
-  const rod = (a, b, radius, material, segments = 16) => {
-    const start = new THREE.Vector3(...a);
-    const end = new THREE.Vector3(...b);
+  const rod = (a, b, radius, material, segments = 20) => {
+    const start = new THREE.Vector3(...a), end = new THREE.Vector3(...b);
     const delta = end.clone().sub(start);
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, delta.length(), segments), material);
     mesh.position.copy(start.clone().add(end).multiplyScalar(0.5));
@@ -344,110 +345,113 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     root.add(mesh);
     return mesh;
   };
-  const terminalX = part.type === "battery" ? 0.72 : 0.36;
+  const curvedLead = (points, radius = 0.009) => {
+    const curve = new THREE.CatmullRomCurve3(points.map((p) => new THREE.Vector3(...p)), false, "centripetal");
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, radius, 10, false), polishedSteel);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    root.add(mesh);
+    return mesh;
+  };
+
+  const isBattery = part.type === "battery";
+  const terminalX = isBattery ? 0.72 : 0.36;
   const terminals = [
-    { id: part.type === "battery" ? "plus" : "a", x: -terminalX, z: 0, label: part.type === "led" ? "A" : part.type === "battery" ? "+" : "1" },
-    { id: part.type === "battery" ? "minus" : part.type === "led" ? "k" : "b", x: terminalX, z: 0, label: part.type === "led" ? "K" : part.type === "battery" ? "−" : "2" }
+    { id: isBattery ? "plus" : "a", x: -terminalX, z: 0, label: part.type === "led" ? "A" : isBattery ? "+" : "1" },
+    { id: isBattery ? "minus" : part.type === "led" ? "k" : "b", x: terminalX, z: 0, label: part.type === "led" ? "K" : isBattery ? "−" : "2" }
   ];
 
-  // Every model is rebuilt around its real physical construction and scale.
-  // Ordinary components occupy exactly two grid nodes; only the cell is larger.
   if (part.type === "led") {
-    // Through-hole 5 mm LED: two continuous bent leads enter the epoxy package.
-    rod([-0.36, 0.145, 0], [-0.285, 0.29, 0], 0.0105, brightSteel, 20);
-    rod([0.36, 0.145, 0], [0.285, 0.29, 0], 0.0105, brightSteel, 20);
-    add(new THREE.CylinderGeometry(0.092, 0.103, 0.065, 48), m.dark, 0, 0.315, 0);
-    add(new THREE.TorusGeometry(0.093, 0.004, 8, 48), steel, 0, 0.347, 0);
-    const lens = add(new THREE.SphereGeometry(0.102, 48, 36), m.glass, 0, 0.389, 0);
-    lens.scale.set(0.98, 1.08, 0.98);
-    // Tiny flat cathode/lead marker on the package skirt.
-    add(new THREE.BoxGeometry(0.034, 0.018, 0.008), brightSteel, 0.052, 0.307, 0.092);
+    // Realistic 5 mm through-hole LED: domed epoxy lens, narrow flange and two continuous formed leads.
+    curvedLead([[-0.36,0.145,0],[-0.36,0.205,0],[-0.315,0.265,0],[-0.285,0.315,0]], 0.009);
+    curvedLead([[0.36,0.145,0],[0.36,0.205,0],[0.315,0.265,0],[0.285,0.315,0]], 0.009);
+    add(new THREE.CylinderGeometry(0.077,0.086,0.055,48), m.dark, 0, 0.326, 0);
+    add(new THREE.TorusGeometry(0.079,0.004,10,48), polishedSteel, 0, 0.352, 0);
+    const lens = add(new THREE.SphereGeometry(0.083,48,36), m.glass, 0, 0.382, 0);
+    lens.scale.set(1,1.08,1);
+    // Flat lower edge and a tiny cathode marker; no floating bulb or oversized base.
+    add(new THREE.BoxGeometry(0.024,0.012,0.006), darkSteel, 0.043, 0.309, 0.075);
     lens.userData.isLedDome = true;
   } else if (part.type === "resistor") {
-    // Axial carbon-film resistor: continuous leads meet the ceramic body at both ends.
-    rod([-0.36, 0.145, 0], [-0.145, 0.266, 0], 0.009, brightSteel, 16);
-    rod([0.36, 0.145, 0], [0.145, 0.266, 0], 0.009, brightSteel, 16);
-    const body = add(new THREE.CapsuleGeometry(0.047, 0.205, 8, 20), ceramic, 0, 0.266, 0);
-    body.rotation.z = Math.PI / 2;
-    // Paint bands follow the curved ceramic surface, rather than floating plates.
-    const bandColors = ["#6f3926", "#b52f26", "#d19a35", "#7c512f"];
-    [-0.105, -0.035, 0.035, 0.105].forEach((x, i) => {
-      const band = add(new THREE.CylinderGeometry(0.048, 0.048, 0.018, 24), mat(bandColors[i], 0.48, 0.02), x, 0.266, 0);
-      band.rotation.z = Math.PI / 2;
+    // Axial resistor: rounded ceramic body, thin printed bands and formed leads that meet its end caps.
+    curvedLead([[-0.36,0.145,0],[-0.36,0.205,0],[-0.27,0.252,0],[-0.155,0.266,0]],0.008);
+    curvedLead([[0.36,0.145,0],[0.36,0.205,0],[0.27,0.252,0],[0.155,0.266,0]],0.008);
+    const body = add(new THREE.CapsuleGeometry(0.043,0.205,8,24), ceramic, 0,0.266,0);
+    body.rotation.z = Math.PI/2;
+    const bands = ["#6e3827","#b12f2c","#d2a044","#79513b"];
+    [-0.102,-0.034,0.034,0.102].forEach((x,i) => {
+      const band = add(new THREE.CylinderGeometry(0.044,0.044,0.012,32),mat(bands[i],0.45,0.01),x,0.266,0);
+      band.rotation.z = Math.PI/2;
     });
   } else if (part.type === "battery") {
-    // Small cylindrical cell with rolled rim, insulated jacket and proper end terminals.
-    const shell = add(new THREE.CylinderGeometry(0.205, 0.205, 0.92, 64), m.body, 0, 0.61, 0);
-    shell.rotation.z = Math.PI / 2;
-    [-0.47, 0.47].forEach((x) => {
-      const rim = add(new THREE.TorusGeometry(0.194, 0.012, 10, 56), brightSteel, x, 0.61, 0);
-      rim.rotation.y = Math.PI / 2;
+    // Keep the larger cell, with rolled metal ends and two real-looking support contacts below the end caps.
+    const shell = add(new THREE.CylinderGeometry(0.205,0.205,0.92,64),m.body,0,0.61,0);
+    shell.rotation.z = Math.PI/2;
+    [-0.465,0.465].forEach((x) => {
+      const rim = add(new THREE.TorusGeometry(0.193,0.011,12,56),polishedSteel,x,0.61,0);
+      rim.rotation.y = Math.PI/2;
     });
-    const positive = add(new THREE.CylinderGeometry(0.09, 0.09, 0.07, 48), brightSteel, -0.535, 0.61, 0);
-    positive.rotation.z = Math.PI / 2;
-    const negative = add(new THREE.CylinderGeometry(0.13, 0.13, 0.025, 48), darkSteel, 0.505, 0.61, 0);
-    negative.rotation.z = Math.PI / 2;
-    const insulator = add(new THREE.CylinderGeometry(0.105, 0.105, 0.012, 48), black, -0.578, 0.61, 0);
-    insulator.rotation.z = Math.PI / 2;
-    const stripe = add(new THREE.BoxGeometry(0.45, 0.014, 0.006), mat("#dce6f4", 0.45, 0.04), 0, 0.61, 0.205);
+    const positive = add(new THREE.CylinderGeometry(0.088,0.088,0.065,48),polishedSteel,-0.525,0.61,0);
+    positive.rotation.z = Math.PI/2;
+    const insulator = add(new THREE.CylinderGeometry(0.105,0.105,0.012,48),black,-0.565,0.61,0);
+    insulator.rotation.z = Math.PI/2;
+    const negative = add(new THREE.CylinderGeometry(0.125,0.125,0.025,48),darkSteel,0.495,0.61,0);
+    negative.rotation.z = Math.PI/2;
+    // Printed sleeve details follow the cylindrical body instead of floating square labels.
+    const stripe = add(new THREE.BoxGeometry(0.38,0.012,0.006),mat("#dbe6f3",0.4,0.02),0,0.61,0.203);
     stripe.rotation.x = -0.12;
-    // Minimal printed markings on the jacket's front face.
-    add(new THREE.BoxGeometry(0.26, 0.022, 0.006), mat("#f2f5fa", 0.5, 0.02), 0.04, 0.65, 0.205);
-    add(new THREE.BoxGeometry(0.18, 0.009, 0.006), mat("#a9c6e9", 0.5, 0.02), 0.04, 0.605, 0.207);
+    add(new THREE.BoxGeometry(0.18,0.008,0.006),mat("#b8d0ed",0.4,0.02),0.035,0.65,0.207);
+    // Metal straps descend from the two axial ends to the wider-spaced board contacts.
+    curvedLead([[-0.53,0.61,0],[-0.57,0.46,0],[-0.62,0.32,0],[-0.72,0.145,0]],0.014);
+    curvedLead([[0.50,0.61,0],[0.55,0.46,0],[0.63,0.31,0],[0.72,0.145,0]],0.014);
   } else if (part.type === "switch") {
-    // Miniature SPST toggle: round metal bezel, inset dark base, real pivot and lever.
-    add(new THREE.CylinderGeometry(0.145, 0.155, 0.07, 48), black, 0, 0.205, 0);
-    add(new THREE.CylinderGeometry(0.119, 0.119, 0.024, 48), darkSteel, 0, 0.251, 0);
-    add(new THREE.TorusGeometry(0.103, 0.012, 10, 48), brightSteel, 0, 0.266, 0);
-    add(new THREE.CylinderGeometry(0.067, 0.067, 0.03, 40), black, 0, 0.278, 0);
+    // Miniature toggle switch with rounded black body, turned bezel, pivot and steel lever.
+    add(new THREE.CylinderGeometry(0.132,0.143,0.068,56),black,0,0.205,0);
+    add(new THREE.CylinderGeometry(0.112,0.112,0.018,56),darkSteel,0,0.248,0);
+    add(new THREE.TorusGeometry(0.101,0.009,12,56),polishedSteel,0,0.26,0);
+    add(new THREE.CylinderGeometry(0.058,0.064,0.026,48),black,0,0.271,0);
     const lever = new THREE.Group();
-    lever.position.set(0, 0.29, 0);
+    lever.position.set(0,0.282,0);
     root.add(lever);
-    const angle = part.closed ? -0.25 : 0.28;
-    const start = new THREE.Vector3(0, 0, 0);
-    const end = new THREE.Vector3(Math.sin(angle) * 0.17, Math.cos(angle) * 0.17, 0);
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, end.length(), 20), brightSteel);
-    shaft.position.copy(start.clone().add(end).multiplyScalar(0.5));
-    shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.clone().normalize());
-    shaft.castShadow = true;
+    const angle = part.closed ? -0.24 : 0.3;
+    const end = new THREE.Vector3(Math.sin(angle)*0.18,Math.cos(angle)*0.18,0);
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.019,end.length(),24),polishedSteel);
+    shaft.position.copy(end.clone().multiplyScalar(0.5));
+    shaft.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().normalize());
     lever.add(shaft);
-    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.036, 24, 18), mat(part.closed ? "#3e9b75" : "#d6dce4", 0.22, 0.48));
-    knob.position.copy(end);
-    knob.castShadow = true;
-    lever.add(knob);
-    // Two soldered pins emerge from the underside and terminate at the pads.
-    rod([-0.36, 0.145, 0], [-0.18, 0.205, 0], 0.012, brightSteel, 16);
-    rod([0.36, 0.145, 0], [0.18, 0.205, 0], 0.012, brightSteel, 16);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.027,24,18),mat("#d4d9df",0.18,0.62));
+    tip.position.copy(end);
+    lever.add(tip);
+    curvedLead([[-0.36,0.145,0],[-0.36,0.19,0],[-0.28,0.205,0],[-0.17,0.205,0]],0.01);
+    curvedLead([[0.36,0.145,0],[0.36,0.19,0],[0.28,0.205,0],[0.17,0.205,0]],0.01);
   } else {
-    // Aluminium electrolytic capacitor: rolled can, crimped rim, rubber bung and vent.
-    add(new THREE.CylinderGeometry(0.105, 0.105, 0.19, 48), m.body, 0, 0.27, 0);
-    add(new THREE.TorusGeometry(0.099, 0.009, 10, 48), brightSteel, 0, 0.365, 0);
-    add(new THREE.CylinderGeometry(0.096, 0.096, 0.012, 48), mat("#cbd2db", 0.24, 0.82), 0, 0.371, 0);
-    add(new THREE.BoxGeometry(0.115, 0.004, 0.009), darkSteel, 0, 0.379, 0);
-    add(new THREE.BoxGeometry(0.009, 0.004, 0.115), darkSteel, 0, 0.379, 0);
-    add(new THREE.BoxGeometry(0.018, 0.11, 0.006), mat("#e8edf2", 0.42, 0.03), 0.076, 0.27, 0.063);
-    rod([-0.36, 0.145, 0], [-0.07, 0.17, 0], 0.009, brightSteel, 16);
-    rod([0.36, 0.145, 0], [0.07, 0.17, 0], 0.009, brightSteel, 16);
+    // Electrolytic capacitor: rounded can, rolled rim, scored metal lid and two close-spaced leads.
+    add(new THREE.CylinderGeometry(0.092,0.096,0.19,56),m.body,0,0.27,0);
+    add(new THREE.TorusGeometry(0.091,0.008,12,56),polishedSteel,0,0.365,0);
+    add(new THREE.CylinderGeometry(0.087,0.087,0.009,56),mat("#cbd2da",0.22,0.86),0,0.368,0);
+    add(new THREE.BoxGeometry(0.105,0.003,0.006),darkSteel,0,0.374,0);
+    add(new THREE.BoxGeometry(0.006,0.003,0.105),darkSteel,0,0.374,0);
+    // Printed polarity stripe follows the front of the sleeve.
+    add(new THREE.BoxGeometry(0.014,0.105,0.006),mat("#e4e9ef",0.38,0.02),0.067,0.27,0.068);
+    curvedLead([[-0.36,0.145,0],[-0.36,0.19,0],[-0.25,0.18,0],[-0.07,0.16,0]],0.008);
+    curvedLead([[0.36,0.145,0],[0.36,0.19,0],[0.25,0.18,0],[0.07,0.16,0]],0.008);
   }
 
   terminals.forEach((terminal) => {
-    const t = makeTerminal(terminal.id === "plus" ? "#d8e1ed" : "#b9c5d2");
-    t.position.set(terminal.x, part.type === "battery" ? 0.456 : 0, terminal.z);
-    t.userData = { kind: "terminal", partId: part.id, terminalId: terminal.id, terminalLabel: terminal.label };
+    const t = makeTerminal(terminal.id === "plus" ? "#e1e7ee" : "#bac4d0");
+    t.position.set(terminal.x,0,terminal.z);
+    t.userData = { kind:"terminal", partId:part.id, terminalId:terminal.id, terminalLabel:terminal.label };
     root.add(t);
   });
-  root.position.set(part.x, 0.16, part.z);
+  root.position.set(part.x,0.16,part.z);
   root.rotation.y = part.rotation || 0;
   root.traverse((obj) => {
-    if (obj.isMesh) {
-      obj.userData.partId = part.id;
-      if (obj.geometry && obj.geometry.type === "SphereGeometry" && obj.parent === root) obj.userData.isComponentBody = true;
-    }
+    if (obj.isMesh) obj.userData.partId = part.id;
   });
   root.userData.partId = part.id;
   targetGroup.add(root);
   if (register) {
-    componentObjects.set(part.id, root);
+    componentObjects.set(part.id,root);
     root.traverse((obj) => { if (obj.userData.kind === "terminal") terminalObjects.push(obj); });
   }
   return root;

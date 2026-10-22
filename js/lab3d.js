@@ -483,6 +483,12 @@ function placePending(event) {
   addPart(type, position);
   return true;
 }
+function disposeComponentPreview() {
+  if (dragPreviewRenderer) {
+    dragPreviewRenderer.dispose();
+    dragPreviewRenderer = null;
+  }
+}
 function createComponentPreview(type) {
   const previewCanvas = document.createElement("canvas");
   previewCanvas.width = 144; previewCanvas.height = 144;
@@ -596,6 +602,7 @@ function bindUI() {
     if (!palettePointer) return;
     palettePointer = null; placementType = null; isPaletteDragging = false;
     dragGhost?.remove(); dragGhost = null;
+    disposeComponentPreview();
     $("sceneDropHint").classList.remove("visible");
     setPlacementTargets(false);
     document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
@@ -607,6 +614,7 @@ function bindUI() {
     const drag = palettePointer;
     palettePointer = null;
     dragGhost?.remove(); dragGhost = null;
+    disposeComponentPreview();
     canvas.style.cursor = "";
     $("sceneDropHint").classList.remove("visible");
     setPlacementTargets(false);

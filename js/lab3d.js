@@ -106,7 +106,9 @@ function init() {
     controls.target.set(0, 0, 0);
     controls.update();
 
+    const builtWidth = boardWidth, builtDepth = boardDepth;
     restore();
+    if (boardWidth !== builtWidth || boardDepth !== builtDepth) rebuildBoardSize(boardWidth, boardDepth);
     rebuildAll();
     bindUI();
     resize();

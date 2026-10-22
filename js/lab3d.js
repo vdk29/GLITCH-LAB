@@ -270,8 +270,8 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     { id: part.type === "battery" ? "minus" : part.type === "led" ? "k" : "b", x: terminalX, z: 0, label: part.type === "led" ? "K" : part.type === "battery" ? "−" : "2" }
   ];
   if (part.type === "led") {
-    cylinderBetween([-0.58, 0.31, 0], [-0.5, 0.58, 0], 0.038, m.metal);
-    cylinderBetween([0.58, 0.31, 0], [0.5, 0.58, 0], 0.038, m.metal);
+    cylinderBetween([-0.72, 0.18, 0], [-0.55, 0.58, 0], 0.032, m.metal);
+    cylinderBetween([0.72, 0.18, 0], [0.55, 0.58, 0], 0.032, m.metal);
     const dome = add(new THREE.SphereGeometry(0.37, 32, 24), m.glass, 0, 0.82, 0);
     dome.scale.set(0.78, 1.04, 0.78);
     add(new THREE.CylinderGeometry(0.3, 0.34, 0.2, 32), m.dark, 0, 0.58, 0);
@@ -279,29 +279,41 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     add(new THREE.SphereGeometry(0.07, 12, 8), mat("#fff2f2", 0.18), -0.12, 0.99, -0.15);
     dome.userData.isLedDome = true;
   } else if (part.type === "resistor") {
-    cylinderBetween([-0.78, 0.26, 0], [-0.34, 0.4, 0], 0.035, m.metal);
-    cylinderBetween([0.34, 0.4, 0], [0.78, 0.26, 0], 0.035, m.metal);
+    cylinderBetween([-0.72, 0.16, 0], [-0.34, 0.4, 0], 0.032, m.metal);
+    cylinderBetween([0.34, 0.4, 0], [0.72, 0.16, 0], 0.032, m.metal);
     add(new THREE.CapsuleGeometry(0.22, 0.42, 5, 16), m.body, 0, 0.43, 0).rotation.z = Math.PI / 2;
     [-0.2, -0.065, 0.07, 0.2].forEach((x, i) => add(new THREE.CylinderGeometry(0.225, 0.225, 0.055, 24), [mat("#8e6b58"),mat("#c77a56"),mat("#708d72"),mat("#bd9655")][i], x, 0.43, 0).rotation.z = Math.PI / 2);
   } else if (part.type === "battery") {
-    add(new THREE.CylinderGeometry(0.34, 0.34, 1.2, 40), m.body, 0, 0.76, 0);
-    add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 40), m.dark, 0, 1.35, 0);
-    add(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 28), mat("#d1a7a0", 0.25, 0.5), -0.18, 1.47, 0);
-    add(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 28), mat("#9ca8c0", 0.25, 0.5), 0.18, 1.47, 0);
-    add(new THREE.TorusGeometry(0.343, 0.018, 8, 40), mat("#f8faff", 0.3, 0.15), 0, 0.38, 0).rotation.x = Math.PI / 2;
+    // Horizontal 5V cell: the visible end caps match the two electrical terminals.
+    const shell = add(new THREE.CylinderGeometry(0.34, 0.34, 1.22, 48, 1, false), m.body, 0, 0.57, 0);
+    shell.rotation.z = Math.PI / 2;
+    const leftCap = add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 48), m.dark, -0.64, 0.57, 0);
+    leftCap.rotation.z = Math.PI / 2;
+    const rightCap = add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 48), m.dark, 0.64, 0.57, 0);
+    rightCap.rotation.z = Math.PI / 2;
+    const positive = add(new THREE.CylinderGeometry(0.19, 0.19, 0.09, 32), mat("#d9a19b", 0.22, 0.55), -0.735, 0.57, 0);
+    positive.rotation.z = Math.PI / 2;
+    const negative = add(new THREE.CylinderGeometry(0.22, 0.22, 0.045, 32), mat("#aab5c8", 0.22, 0.68), 0.725, 0.57, 0);
+    negative.rotation.z = Math.PI / 2;
+    const rim = add(new THREE.TorusGeometry(0.315, 0.018, 10, 48), mat("#ffffff", 0.22, 0.2), -0.48, 0.57, 0);
+    rim.rotation.y = Math.PI / 2;
     const labelCanvas = document.createElement("canvas");
-    labelCanvas.width = 256; labelCanvas.height = 160;
+    labelCanvas.width = 320; labelCanvas.height = 160;
     const labelCtx = labelCanvas.getContext("2d");
-    labelCtx.clearRect(0, 0, 256, 160);
-    labelCtx.fillStyle = "#f5f7ff"; labelCtx.beginPath(); labelCtx.roundRect(12, 12, 232, 136, 20); labelCtx.fill();
-    labelCtx.fillStyle = "#788bc2"; labelCtx.font = "800 32px Arial"; labelCtx.textAlign = "center"; labelCtx.fillText("GL / 5V", 128, 70);
-    labelCtx.fillStyle = "#a2adc9"; labelCtx.font = "18px Arial"; labelCtx.fillText("POWER CELL", 128, 104);
+    labelCtx.clearRect(0, 0, 320, 160);
+    const gradient = labelCtx.createLinearGradient(0, 0, 320, 160);
+    gradient.addColorStop(0, "#f8f9ff"); gradient.addColorStop(1, "#dfe6fb");
+    labelCtx.fillStyle = gradient; labelCtx.beginPath(); labelCtx.roundRect(8, 8, 304, 144, 28); labelCtx.fill();
+    labelCtx.fillStyle = "#6c7fba"; labelCtx.font = "800 39px Arial"; labelCtx.textAlign = "center"; labelCtx.fillText("GL / 5V", 160, 69);
+    labelCtx.fillStyle = "#9aa8cf"; labelCtx.font = "bold 20px Arial"; labelCtx.fillText("POWER CELL", 160, 105);
+    labelCtx.fillStyle = "#c27e7b"; labelCtx.font = "bold 23px Arial"; labelCtx.fillText("+  ───────  −", 160, 135);
     const labelTexture = new THREE.CanvasTexture(labelCanvas); labelTexture.colorSpace = THREE.SRGBColorSpace;
-    const labelMesh = add(new THREE.PlaneGeometry(0.49, 0.34), new THREE.MeshBasicMaterial({ map: labelTexture, transparent: true, side: THREE.DoubleSide }), 0, 0.79, 0.343);
-    labelMesh.rotation.y = 0;
-    cylinderBetween([-0.85, 0.26, 0], [-0.18, 0.55, 0], 0.04, m.metal);
-    cylinderBetween([0.85, 0.26, 0], [0.18, 0.55, 0], 0.04, m.metal);
-    const plus = add(new THREE.TorusGeometry(0.11, 0.018, 6, 20), mat("#c9867d"), -0.18, 1.55, 0); plus.rotation.x = Math.PI / 2;
+    const labelMesh = add(new THREE.PlaneGeometry(0.78, 0.39), new THREE.MeshBasicMaterial({ map: labelTexture, transparent: true, side: THREE.DoubleSide }), 0, 0.57, 0.345);
+    const plusMark = add(new THREE.TorusGeometry(0.095, 0.018, 8, 24), mat("#fff5f2", 0.2), -0.735, 0.57, 0);
+    plusMark.rotation.y = Math.PI / 2;
+    add(new THREE.BoxGeometry(0.12, 0.018, 0.018), mat("#fff5f2", 0.2), -0.735, 0.57, 0);
+    cylinderBetween([-0.72, 0.22, 0], [-0.72, 0.09, 0], 0.028, m.metal);
+    cylinderBetween([0.72, 0.22, 0], [0.72, 0.09, 0], 0.028, m.metal);
   } else if (part.type === "switch") {
     add(new THREE.BoxGeometry(1.0, 0.3, 0.72), m.body, 0, 0.34, 0);
     add(new THREE.BoxGeometry(0.86, 0.09, 0.58), m.dark, 0, 0.51, 0);
@@ -318,8 +330,8 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     add(new THREE.CircleGeometry(0.25, 32), mat("#e4eafa", 0.25), 0, 1.101, 0).rotation.x = -Math.PI / 2;
     const plusV = add(new THREE.BoxGeometry(0.24, 0.018, 0.045), mat("#f8fbff", 0.25), 0, 1.115, 0);
     add(new THREE.BoxGeometry(0.045, 0.018, 0.24), mat("#f8fbff", 0.25), 0, 1.115, 0);
-    cylinderBetween([-0.5, 0.23, 0], [-0.25, 0.4, 0], 0.035, m.metal);
-    cylinderBetween([0.5, 0.23, 0], [0.25, 0.4, 0], 0.035, m.metal);
+    cylinderBetween([-0.72, 0.16, 0], [-0.25, 0.4, 0], 0.032, m.metal);
+    cylinderBetween([0.25, 0.4, 0], [0.72, 0.16, 0], 0.032, m.metal);
   }
   terminals.forEach((terminal) => {
     const t = makeTerminal(terminal.id === "plus" || terminal.id === "a" ? "#e6a09b" : "#91a9d7");

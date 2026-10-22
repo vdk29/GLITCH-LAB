@@ -265,8 +265,9 @@ function updatePlacementTargets(event) {
   const snapped = hitBoard(event);
   if (!snapped) return;
   placementTargets.position.set(snapped.x, 0, snapped.z);
+  const contactSpan = placementType === "battery" ? 0.72 : 0.36;
   placementTargets.userData.contactMarkers.forEach((marker, index) => {
-    marker.position.set(index === 0 ? -0.72 : 0.72, 0, 0);
+    marker.position.set(index === 0 ? -contactSpan : contactSpan, 0, 0);
   });
   placementTargets.visible = true;
 }
@@ -416,7 +417,7 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
 
   terminals.forEach((terminal) => {
     const t = makeTerminal(terminal.id === "plus" || terminal.id === "a" ? "#c0c7d0" : "#aeb9c7");
-    t.position.set(terminal.x, 0, terminal.z);
+    t.position.set(terminal.x, part.type === "battery" ? 0.41 : 0, terminal.z);
     t.userData = { kind: "terminal", partId: part.id, terminalId: terminal.id, terminalLabel: terminal.label };
     root.add(t);
   });
@@ -519,8 +520,6 @@ function addPart(type, position) {
   selectedPartId = id;
   currentActive = false; solved = false;
   save(); rebuildAll();
-  const placedRoot = componentObjects.get(id);
-  if (placedRoot) { placedRoot.scale.setScalar(0.72); placedRoot.position.y += 0.72; placedRoot.userData.spawnAt = performance.now(); placedRoot.userData.spawnY = 0.16; }
   updateSelection();
   result("", palette[type].title + " установлен", "Деталь аккуратно поставлена на плату. Нажми на её контакт, а затем на контакт другой детали, чтобы соединить их проводом.");
 }
@@ -1172,17 +1171,6 @@ function animate() {
         obj.material.emissiveIntensity = part?.lit ? 2.2 : 0.08;
       }
     });
-    if (root.userData.spawnAt) {
-      const progress = Math.min(1, (performance.now() - root.userData.spawnAt) / 330);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      root.scale.setScalar(0.72 + 0.28 * eased);
-      root.position.y = root.userData.spawnY + 0.72 * (1 - eased) + Math.sin(progress * Math.PI) * 0.09;
-      if (progress >= 1) {
-        root.position.y = root.userData.spawnY;
-        root.scale.setScalar(1);
-        delete root.userData.spawnAt;
-      }
-    }
   });
   // Keep the workbench still and product-like; no floating decorative particles.
   wireGroup.children.forEach((obj) => {

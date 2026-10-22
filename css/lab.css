@@ -287,3 +287,8 @@
   .dragging-component-ghost{width:88px;height:88px}
   .dragging-component-ghost .component-preview-canvas{width:88px;height:88px}
 }
+
+
+/* Placement guidance: keep the work area clear and let the board show targets */
+#sceneDropHint{display:none!important}
+.scene-bottom-note{z-index:2}

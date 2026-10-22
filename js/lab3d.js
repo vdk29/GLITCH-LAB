@@ -506,86 +506,81 @@ function bindUI() {
     setTimeout(resize, 80);
   });
   document.querySelectorAll("[data-place]").forEach((button) => {
+    button.style.touchAction = "none";
     button.addEventListener("pointerdown", (event) => {
       if (event.button !== undefined && event.button !== 0) return;
       event.preventDefault();
       palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button, pointerId: event.pointerId };
-      // Avoid pointer capture: on desktop it can retarget the release to the catalog button.
       placementType = button.dataset.place;
       dragGhost = document.createElement("div");
       dragGhost.className = "dragging-component-ghost ghost-" + button.dataset.place;
       dragGhost.style.left = event.clientX + "px";
       dragGhost.style.top = event.clientY + "px";
       dragGhost.setAttribute("aria-hidden", "true");
-      // Lightweight drag ghost avoids allocating a second WebGL context for every drag.
-      dragGhost.textContent = palette[button.dataset.place]?.title || "Компонент";
-      dragGhost.style.cssText += ";width:112px;height:56px;padding:8px;border-radius:14px;background:rgba(255,255,255,.96);color:#59647a;font:600 12px system-ui;justify-content:center;align-items:center;border:1px solid #dddaf4;box-shadow:0 12px 30px rgba(70,70,110,.18)";
+      const art = button.querySelector(".pick-art");
+      if (art) dragGhost.appendChild(art.cloneNode(true));
+      const title = document.createElement("span");
+      title.textContent = palette[button.dataset.place]?.title || "Компонент";
+      title.style.cssText = "font:700 12px system-ui;color:#59647a;white-space:nowrap";
+      dragGhost.appendChild(title);
+      dragGhost.style.cssText += ";display:flex;gap:9px;width:auto;min-width:112px;height:60px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.97);align-items:center;justify-content:flex-start;border:1px solid #dddaf4;box-shadow:0 12px 30px rgba(70,70,110,.18);pointer-events:none;z-index:99999";
       document.body.appendChild(dragGhost);
       button.classList.add("is-pending");
     });
   });
+
   window.addEventListener("pointermove", (event) => {
     if (!palettePointer) return;
-    if (dragGhost) {
-      dragGhost.style.left = event.clientX + "px";
-      dragGhost.style.top = event.clientY + "px";
-      dragGhost.classList.toggle("is-dragging", Math.hypot(event.clientX - palettePointer.x, event.clientY - palettePointer.y) > 9);
-    }
-    if (Math.hypot(event.clientX - palettePointer.x, event.clientY - palettePointer.y) > 9) {
+    const distance = Math.hypot(event.clientX - palettePointer.x, event.clientY - palettePointer.y);
+    if (dragGhost) { dragGhost.style.left = event.clientX + "px"; dragGhost.style.top = event.clientY + "px"; }
+    if (distance > 7) {
       palettePointer.moved = true;
       isPaletteDragging = true;
       placementType = palettePointer.type;
       setPlacementTargets(true);
       $("sceneDropHint").classList.add("visible");
-      $("sceneHint").textContent = "Выбери подсвеченное отверстие на плате";
-      document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === palettePointer.button));
+      $("sceneHint").textContent = "Отпусти компонент над платой";
+      palettePointer.button.classList.add("is-pending");
       canvas.style.cursor = "copy";
     }
   });
+
   window.addEventListener("pointercancel", () => {
     if (!palettePointer) return;
     palettePointer = null; placementType = null; isPaletteDragging = false;
     dragGhost?.remove(); dragGhost = null;
     $("sceneDropHint").classList.remove("visible");
     setPlacementTargets(false);
-    document.querySelectorAll(".component-pick").forEach((item) => item.classList.remove("is-pending"));
+    document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
     canvas.style.cursor = "";
   });
+
   window.addEventListener("pointerup", (event) => {
-    if (palettePointer) {
-      const drag = palettePointer;
-      palettePointer = null;
-      isPaletteDragging = false;
-      dragGhost?.remove(); dragGhost = null;
-      if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer.forceContextLoss(); dragPreviewRenderer = null; }
-      canvas.style.cursor = "";
-      $("sceneDropHint").classList.remove("visible");
-      setPlacementTargets(false);
-      if (drag.moved) {
-        const rect = viewport.getBoundingClientRect();
-        const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
-        if (inside) {
-          placementType = drag.type;
-          placePending(event);
-        } else {
-          placementType = null;
-          document.querySelectorAll(".component-pick").forEach((item) => item.classList.remove("is-pending"));
-          result("warning", "Отпусти деталь над платой", "Перенеси компонент из каталога прямо в область 3D-платы.");
-        }
-      } else {
+    if (!palettePointer) return;
+    const drag = palettePointer;
+    palettePointer = null;
+    dragGhost?.remove(); dragGhost = null;
+    canvas.style.cursor = "";
+    $("sceneDropHint").classList.remove("visible");
+    setPlacementTargets(false);
+    document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
+    if (drag.moved) {
+      const rect = viewport.getBoundingClientRect();
+      const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+      if (inside) {
         placementType = drag.type;
-        document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === drag.button));
-        $("sceneHint").textContent = "Теперь коснись места на плате, чтобы установить деталь";
-        result("", "Выбрана деталь: " + palette[placementType].title, "Перетащи её на плату или просто коснись свободного места на плате.");
+        isPaletteDragging = false;
+        placePending(event);
+      } else {
+        placementType = null; isPaletteDragging = false;
+        result("warning", "Отпусти деталь над платой", "Перенеси компонент из каталога прямо в область 3D-платы.");
       }
-      return;
+    } else {
+      placementType = drag.type; isPaletteDragging = false;
+      drag.button.classList.add("is-pending");
+      $("sceneHint").textContent = "Теперь нажми на место на плате, чтобы установить деталь";
+      result("", "Выбрана деталь: " + palette[placementType].title, "Нажми на плату для установки или перетащи деталь сюда.");
     }
-    if (!placementType || !isPaletteDragging) return;
-    const rect = canvas.getBoundingClientRect();
-    const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
-    isPaletteDragging = false;
-    if (inside) placePending(event);
-    else $("sceneDropHint").classList.remove("visible");
   });
   canvas.addEventListener("pointermove", (event) => {
     if (isPaletteDragging) $("sceneDropHint").classList.add("visible");

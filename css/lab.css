@@ -260,3 +260,30 @@
  .dragging-component-ghost{width:70px;height:70px;border-radius:24px}
  .dragging-component-ghost .pick-art{width:55px;height:55px;flex-basis:55px;border-radius:18px}
 }
+
+
+/* GLITCH LAB refinement: transparent, true 3D component held under the finger */
+.dragging-component-ghost{
+  width:104px;height:104px;min-height:0;padding:0;display:grid;place-items:center;
+  border:0;border-radius:0;background:transparent!important;box-shadow:none!important;
+  backdrop-filter:none;opacity:1;transform:translate(-50%,-58%) scale(.96) rotate(-4deg);
+}
+.dragging-component-ghost:after{display:none}
+.dragging-component-ghost .component-preview-canvas{
+  display:block;width:104px;height:104px;max-width:none;pointer-events:none;
+  filter:drop-shadow(0 12px 9px rgba(56,67,98,.2));
+}
+.dragging-component-ghost.is-dragging{
+  transform:translate(-50%,-66%) scale(1.08) rotate(2deg);
+  box-shadow:none!important;background:transparent!important;
+}
+.dragging-component-ghost.ghost-led,
+.dragging-component-ghost.ghost-resistor,
+.dragging-component-ghost.ghost-battery,
+.dragging-component-ghost.ghost-switch,
+.dragging-component-ghost.ghost-capacitor{background:transparent!important}
+.scene-viewport{background:radial-gradient(ellipse at 48% 42%,#fff 0%,#fbfaff 38%,#edf4f4 73%,#e5edf5 100%)}
+@media(max-width:560px){
+  .dragging-component-ghost{width:88px;height:88px}
+  .dragging-component-ghost .component-preview-canvas{width:88px;height:88px}
+}

@@ -323,8 +323,8 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     statusLamp.material.emissiveIntensity = part.closed ? 0.8 : 0.12;
     const lever = add(new THREE.BoxGeometry(0.54, 0.11, 0.14), m.metal, part.closed ? 0.08 : 0, 0.7, part.closed ? 0 : -0.12);
     lever.rotation.z = part.closed ? 0 : -0.38;
-    cylinderBetween([-0.68, 0.25, 0], [-0.43, 0.35, 0], 0.035, m.metal);
-    cylinderBetween([0.68, 0.25, 0], [0.43, 0.35, 0], 0.035, m.metal);
+    cylinderBetween([-0.72, 0.16, 0], [-0.43, 0.35, 0], 0.032, m.metal);
+    cylinderBetween([0.43, 0.35, 0], [0.72, 0.16, 0], 0.032, m.metal);
   } else if (part.type === "capacitor") {
     add(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 40), m.body, 0, 0.59, 0);
     add(new THREE.CylinderGeometry(0.35, 0.35, 0.09, 40), m.dark, 0, 1.05, 0);

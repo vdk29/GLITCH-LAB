@@ -240,6 +240,13 @@ function buildPlacementTargets() {
   placementTargets.add(haloInstances, dotInstances);
   boardGroup.add(placementTargets);
 }
+function setPlacementTargets(visible) {
+  // Shared by click-to-place and drag-to-place flows. This function was
+  // referenced by the palette handlers but missing, causing a ReferenceError
+  // before placement could reach addPart().
+  if (placementTargets) placementTargets.visible = Boolean(visible);
+}
+
 function buildAmbientParticles() {
   const particleGroup = new THREE.Group();
   const geometry = new THREE.SphereGeometry(0.025, 8, 6);

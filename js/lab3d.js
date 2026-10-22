@@ -287,13 +287,17 @@ function buildAmbientParticles() {
   scene.add(particleGroup);
 }
 function makeTerminal(color = "#b8c3d2") {
+  // Low-profile plated contact: metal ferrule with a flat contact face, not a toy-like ball.
   const group = new THREE.Group();
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.14, 20), mat("#aeb9c8", 0.2, 0.86));
-  stem.position.y = 0.045; group.add(stem);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.068, 28, 18), mat(color, 0.17, 0.42));
-  cap.position.y = 0.112; cap.castShadow = true; group.add(cap);
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.018, 16, 12), mat("#ffffff", 0.12, 0.2));
-  core.position.set(-0.016, 0.135, -0.02); group.add(core);
+  const metal = mat("#b9c4d0", 0.2, 0.94);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.085, 0.035, 32), mat("#3b4653", 0.3, 0.62));
+  base.position.y = 0.018; group.add(base);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.105, 24), metal);
+  stem.position.y = 0.078; group.add(stem);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.025, 32), mat(color, 0.24, 0.58));
+  cap.position.y = 0.14; cap.castShadow = true; group.add(cap);
+  const face = new THREE.Mesh(new THREE.CircleGeometry(0.046, 32), mat("#d9e0e8", 0.18, 0.72));
+  face.rotation.x = -Math.PI / 2; face.position.y = 0.154; group.add(face);
   return group;
 }
 function componentMaterials(type) {
@@ -941,16 +945,22 @@ function rebuildWires() {
     if (!aPart || !bPart) return;
     const start = terminalWorldPosition(aPart, terminalA), end = terminalWorldPosition(bPart, terminalB);
     if (!start || !end) return;
-    const raisedStart = start.clone(); raisedStart.y += 0.18;
-    const raisedEnd = end.clone(); raisedEnd.y += 0.18;
-    const middle = raisedStart.clone().add(raisedEnd).multiplyScalar(0.5); middle.y += 0.4 + Math.min(0.55, start.distanceTo(end) * 0.08);
-    const curve = new THREE.CatmullRomCurve3([raisedStart, middle, raisedEnd]);
-    const wireMaterial = new THREE.MeshStandardMaterial({ color: index % 2 ? "#8da9e8" : "#e88e83", roughness: 0.35, metalness: 0.15, emissive: currentActive ? (index % 2 ? "#4d6fc2" : "#a94e49") : "#000000", emissiveIntensity: currentActive ? 0.28 : 0 });
-    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.045, 10, false), wireMaterial);
+    // Insulated jumper wire follows a low, gentle arch and physically meets both terminals.
+    const raisedStart = start.clone(); raisedStart.y += 0.018;
+    const raisedEnd = end.clone(); raisedEnd.y += 0.018;
+    const distance = raisedStart.distanceTo(raisedEnd);
+    const middle = raisedStart.clone().add(raisedEnd).multiplyScalar(0.5);
+    middle.y += Math.min(0.16, 0.045 + distance * 0.018);
+    const curve = new THREE.CatmullRomCurve3([raisedStart, middle, raisedEnd], false, "centripetal");
+    const wireColors = ["#d92f37", "#252b34", "#2467c9", "#e5b52b", "#168b66"];
+    const wireColor = wireColors[index % wireColors.length];
+    const wireMaterial = new THREE.MeshStandardMaterial({ color: wireColor, roughness: 0.72, metalness: 0.02, emissive: currentActive ? wireColor : "#000000", emissiveIntensity: currentActive ? 0.08 : 0 });
+    const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(24, Math.ceil(distance * 18)), 0.022, 8, false), wireMaterial);
     mesh.castShadow = true;
     mesh.userData.wireIndex = index;
     wireGroup.add(mesh); wireObjects.push(mesh);
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), mat("#fff8d8", 0.22, 0.1));
+    // Current indicator is a small, restrained amber point; wire geometry itself stays static.
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.026, 12, 8), new THREE.MeshBasicMaterial({ color: "#ffe8a3" }));
     dot.userData.flowCurve = curve; dot.userData.flowOffset = (index * 0.23) % 1;
     dot.visible = currentActive; wireGroup.add(dot); activeFlowDots.push(dot);
   });
@@ -1131,12 +1141,10 @@ function animate() {
   const time = performance.now() * 0.001;
   if (placementTargets?.visible) {
     placementTargets.userData.contactMarkers.forEach((marker) => {
-      const pulse = 0.5 + 0.5 * Math.sin(time * 4.2 + marker.userData.phase);
-      marker.userData.ring.material.opacity = 0.48 + pulse * 0.48;
-      marker.userData.core.material.opacity = 0.68 + pulse * 0.30;
-      const scale = 0.92 + pulse * 0.22;
-      marker.userData.ring.scale.setScalar(scale);
-      marker.userData.core.scale.setScalar(scale);
+      marker.userData.ring.material.opacity = 0.92;
+      marker.userData.core.material.opacity = 1;
+      marker.userData.ring.scale.setScalar(1);
+      marker.userData.core.scale.setScalar(1);
     });
   }
   if (currentActive) {
@@ -1145,23 +1153,25 @@ function animate() {
       if (!curve) return;
       const t = (time * 0.42 + dot.userData.flowOffset) % 1;
       dot.position.copy(curve.getPoint(t));
-      const pulse = 0.8 + Math.sin(time * 7 + dot.userData.flowOffset * 6) * 0.2;
-      dot.scale.setScalar(pulse);
+      dot.scale.setScalar(1);
     });
     componentObjects.forEach((root, id) => {
       const part = parts.find((item) => item.id === id);
       if (part?.lit) {
         const light = root.children.find((obj) => obj.isPointLight && obj.userData.partGlow === id);
-        if (light) light.intensity = 1.8 + Math.sin(time * 8) * 0.45;
+        if (light) light.intensity = 2.0;
       }
     });
   }
   componentObjects.forEach((root, id) => {
     const part = parts.find((item) => item.id === id);
     root.traverse((obj) => {
-      if (!obj.userData.isLedDome || !obj.userData.baseScale) return;
-      const pulse = part?.lit ? 1 + (Math.sin(time * 8) + 1) * 0.035 : 1;
-      obj.scale.copy(obj.userData.baseScale).multiplyScalar(pulse);
+      if (!obj.userData.isLedDome) return;
+      // LEDs emit a steady light; no breathing or cartoon pulsing.
+      if (obj.material?.emissive) {
+        obj.material.emissive.set(part?.lit ? "#ff172f" : "#5c1019");
+        obj.material.emissiveIntensity = part?.lit ? 2.2 : 0.08;
+      }
     });
     if (root.userData.spawnAt) {
       const progress = Math.min(1, (performance.now() - root.userData.spawnAt) / 330);
@@ -1175,17 +1185,12 @@ function animate() {
       }
     }
   });
-  ambientParticles.forEach((particle) => {
-    particle.position.y = particle.userData.baseY + Math.sin(time * 0.7 + particle.userData.floatOffset) * 0.11;
-    particle.position.x += Math.sin(time * 0.22 + particle.userData.floatOffset) * 0.0008;
-    particle.material.opacity = 0.25 + (Math.sin(time * 1.4 + particle.userData.floatOffset) + 1) * 0.16;
-  });
+  // Keep the workbench still and product-like; no floating decorative particles.
   wireGroup.children.forEach((obj) => {
     if (obj.userData.isSelectedHalo) {
-      obj.rotation.z = Math.sin(time * 0.65) * 0.025;
-      const pulse = 1 + Math.sin(time * 2.8) * 0.035;
-      obj.scale.set(pulse, pulse, pulse);
-      obj.material.opacity = 0.58 + (Math.sin(time * 3) + 1) * 0.12;
+      obj.rotation.z = 0;
+      obj.scale.set(1, 1, 1);
+      obj.material.opacity = 0.76;
     }
   });
   controls?.update();

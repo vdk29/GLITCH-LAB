@@ -275,11 +275,11 @@ function makeTerminal(color = "#b8c3d2") {
   return group;
 }
 function componentMaterials(type) {
-  if (type === "led") return { body: mat("#e77b83", 0.22), dark: mat("#bd5d69", 0.3), metal: mat("#b9c2ce", 0.24, 0.72), glass: new THREE.MeshPhysicalMaterial({ color: "#ff8c92", roughness: 0.13, metalness: 0, transmission: 0.16, thickness: 0.35, clearcoat: 1, clearcoatRoughness: 0.1, emissive: "#5c1019", emissiveIntensity: 0.1 }) };
-  if (type === "resistor") return { body: mat("#e7c995", 0.34), dark: mat("#c69b66", 0.4), metal: mat("#b9c2ce", 0.25, 0.7) };
-  if (type === "battery") return { body: mat("#e9edf8", 0.3, 0.15), dark: mat("#98a9d7", 0.3, 0.1), metal: mat("#c3ccd8", 0.23, 0.75) };
-  if (type === "switch") return { body: mat("#dfe7e4", 0.4), dark: mat("#7f9e94", 0.35), metal: mat("#b8c2ce", 0.23, 0.65) };
-  return { body: mat("#9eafd2", 0.24, 0.12), dark: mat("#7186b5", 0.3), metal: mat("#b9c2ce", 0.23, 0.7) };
+  if (type === "led") return { body: mat("#e9878c", 0.2), dark: mat("#a94e60", 0.27), metal: mat("#bfcbd7", 0.2, 0.78), glass: new THREE.MeshPhysicalMaterial({ color: "#ff9ba1", roughness: 0.09, metalness: 0, transmission: 0.2, thickness: 0.42, clearcoat: 1, clearcoatRoughness: 0.08, emissive: "#681d2a", emissiveIntensity: 0.13 }) };
+  if (type === "resistor") return { body: mat("#f0d7a7", 0.28), dark: mat("#bd955f", 0.34), metal: mat("#c7d0dc", 0.2, 0.78) };
+  if (type === "battery") return { body: mat("#edf1fc", 0.24, 0.18), dark: mat("#8498c8", 0.26, 0.14), metal: mat("#cbd4e0", 0.18, 0.82) };
+  if (type === "switch") return { body: mat("#e4f0e9", 0.3), dark: mat("#72998c", 0.28), metal: mat("#c2ccd7", 0.2, 0.75) };
+  return { body: mat("#aabde0", 0.22, 0.16), dark: mat("#687fa9", 0.28), metal: mat("#c4cfdd", 0.2, 0.78) };
 }
 function makePartMesh(part, targetGroup = componentGroup, register = true) {
   // Defensive guard: Array.forEach passes (value, index, array), not our optional arguments.
@@ -300,9 +300,8 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), delta.normalize());
     mesh.castShadow = true; root.add(mesh); return mesh;
   };
-  const haloColor = part.type === "led" ? "#f5c4c6" : part.type === "resistor" ? "#f0d7ad" : part.type === "battery" ? "#cbd5f5" : part.type === "switch" ? "#c6e4d8" : "#d2d9f4";
-  add(new THREE.CylinderGeometry(part.type === "battery" ? 0.63 : 0.57, part.type === "battery" ? 0.67 : 0.61, 0.075, 48), mat("#f9fbff", 0.32, 0.12), 0, 0.205, 0).scale.set(1, 1, 0.72);
-  add(new THREE.TorusGeometry(part.type === "battery" ? 0.61 : 0.55, 0.022, 10, 48), mat(haloColor, 0.28, 0.16), 0, 0.25, 0).rotation.x = Math.PI / 2;
+  // Components sit directly on the workbench: avoid the oversized circular
+  // display plinth that made every real component look like a button.
   const terminalX = 0.72;
   const terminals = [
     { id: part.type === "battery" ? "plus" : "a", x: -terminalX, z: 0, label: part.type === "led" ? "A" : part.type === "battery" ? "+" : "1" },

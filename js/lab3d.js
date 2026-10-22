@@ -218,26 +218,25 @@ function buildBoard() {
 function buildPlacementTargets() {
   placementTargets = new THREE.Group();
   placementTargets.visible = false;
-  const haloMat = new THREE.MeshBasicMaterial({ color: "#fff4cf", transparent: true, opacity: 0.95, depthWrite: false });
-  const innerMat = new THREE.MeshBasicMaterial({ color: "#e8a85e", transparent: true, opacity: 0.82, depthWrite: false });
-  const haloGeo = new THREE.TorusGeometry(0.105, 0.018, 8, 20);
-  const dotGeo = new THREE.CircleGeometry(0.035, 16);
+  const positions = [];
   for (let x = -5.4; x <= 5.401; x += 0.36) {
-    for (let z = -3.24; z <= 3.241; z += 0.36) {
-      const halo = new THREE.Mesh(haloGeo, haloMat);
-      halo.rotation.x = Math.PI / 2;
-      halo.position.set(x, 0.174, z);
-      placementTargets.add(halo);
-      const dot = new THREE.Mesh(dotGeo, innerMat);
-      dot.rotation.x = -Math.PI / 2;
-      dot.position.set(x, 0.176, z);
-      placementTargets.add(dot);
-    }
+    for (let z = -3.24; z <= 3.241; z += 0.36) positions.push([x, z]);
   }
+  const haloMat = new THREE.MeshBasicMaterial({ color: "#fff4cf", transparent: true, opacity: 0.98, depthWrite: false });
+  const innerMat = new THREE.MeshBasicMaterial({ color: "#e8a85e", transparent: true, opacity: 0.9, depthWrite: false });
+  const haloInstances = new THREE.InstancedMesh(new THREE.TorusGeometry(0.105, 0.018, 8, 20), haloMat, positions.length);
+  const dotInstances = new THREE.InstancedMesh(new THREE.CircleGeometry(0.035, 16), innerMat, positions.length);
+  const transform = new THREE.Object3D();
+  positions.forEach(([x, z], i) => {
+    transform.position.set(x, 0.174, z); transform.rotation.set(Math.PI / 2, 0, 0); transform.updateMatrix();
+    haloInstances.setMatrixAt(i, transform.matrix);
+    transform.position.set(x, 0.176, z); transform.rotation.set(-Math.PI / 2, 0, 0); transform.updateMatrix();
+    dotInstances.setMatrixAt(i, transform.matrix);
+  });
+  haloInstances.instanceMatrix.needsUpdate = true;
+  dotInstances.instanceMatrix.needsUpdate = true;
+  placementTargets.add(haloInstances, dotInstances);
   boardGroup.add(placementTargets);
-}
-function setPlacementTargets(visible) {
-  if (placementTargets) placementTargets.visible = Boolean(visible);
 }
 function buildAmbientParticles() {
   const particleGroup = new THREE.Group();

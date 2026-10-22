@@ -42,8 +42,10 @@ let dragOffset = new THREE.Vector3();
 let dragLastWireUpdate = 0;
 let ambientParticles = [];
 
-const boardWidth = 12;
-const boardDepth = 8;
+let boardWidth = 12;
+let boardDepth = 8;
+const BOARD_SIZES = { compact: [12, 8], studio: [15.6, 10.08], xl: [18.48, 12.24] };
+const boardBounds = () => ({ minX: -boardWidth / 2 + 0.6, maxX: boardWidth / 2 - 0.6, minZ: -boardDepth / 2 + 0.76, maxZ: boardDepth / 2 - 0.76 });
 const terminalRadius = 0.09;
 
 function init() {
@@ -169,8 +171,9 @@ function buildBoard() {
   const holeMat = mat("#658b7b", 0.5, 0.08);
   const holeInner = mat("#466e61", 0.72);
   const holePositions = [];
-  for (let x = -5.4; x <= 5.401; x += 0.36) {
-    for (let z = -3.24; z <= 3.241; z += 0.36) holePositions.push([x, z]);
+  const bounds = boardBounds();
+  for (let x = bounds.minX; x <= bounds.maxX + 0.001; x += 0.36) {
+    for (let z = bounds.minZ; z <= bounds.maxZ + 0.001; z += 0.36) holePositions.push([x, z]);
   }
   const ringInstances = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.064, 0.064, 0.018, 12), holeMat, holePositions.length);
   const holeInstances = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.033, 0.033, 0.02, 12), holeInner, holePositions.length);
@@ -201,16 +204,17 @@ function buildBoard() {
   const label = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 0.82), new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide }));
   label.rotation.x = -Math.PI / 2; label.position.set(0, 0.145, 3.52); boardGroup.add(label);
   const gridMaterial = new THREE.LineBasicMaterial({ color: "#f1fff6", transparent: true, opacity: 0.34 });
-  for (let x = -5.4; x <= 5.401; x += 0.72) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.151, -3.4), new THREE.Vector3(x, 0.151, 3.4)]);
+  const bounds = boardBounds();
+  for (let x = bounds.minX; x <= bounds.maxX + 0.001; x += 0.72) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.151, bounds.minZ - 0.16), new THREE.Vector3(x, 0.151, bounds.maxZ + 0.16)]);
     gridGroup.add(new THREE.Line(geometry, gridMaterial));
   }
-  for (let z = -3.24; z <= 3.241; z += 0.72) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-5.4, 0.151, z), new THREE.Vector3(5.4, 0.151, z)]);
+  for (let z = bounds.minZ; z <= bounds.maxZ + 0.001; z += 0.72) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(bounds.minX, 0.151, z), new THREE.Vector3(bounds.maxX, 0.151, z)]);
     gridGroup.add(new THREE.Line(geometry, gridMaterial));
   }
   const screwMat = mat("#a9b3c3", 0.25, 0.45);
-  for (const x of [-5.8, 5.8]) for (const z of [-3.8, 3.8]) {
+  for (const x of [-boardWidth / 2 + 0.2, boardWidth / 2 - 0.2]) for (const z of [-boardDepth / 2 + 0.2, boardDepth / 2 - 0.2]) {
     const screw = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.05, 24), screwMat);
     screw.position.set(x, 0.0, z); screw.castShadow = true; boardGroup.add(screw);
     const slot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.01, 0.025), mat("#7c8799", 0.4, 0.2));
@@ -226,18 +230,18 @@ function buildPlacementTargets() {
   for (let i = 0; i < 2; i++) {
     const marker = new THREE.Group();
     const haloMaterial = new THREE.MeshBasicMaterial({
-      color: i === 0 ? "#f2ad91" : "#a9a0f1",
-      transparent: true, opacity: 0.12, depthTest: false, depthWrite: false
+      color: i === 0 ? "#ff8b67" : "#8978ff",
+      transparent: true, opacity: 0.38, depthTest: false, depthWrite: false
     });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 10, 32), haloMaterial);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.135, 0.019, 12, 40), haloMaterial);
     ring.rotation.x = Math.PI / 2;
     ring.position.y = 0.205;
     ring.renderOrder = 20;
     const coreMaterial = new THREE.MeshBasicMaterial({
-      color: i === 0 ? "#f2ad91" : "#a9a0f1",
-      transparent: true, opacity: 0.25, depthTest: false, depthWrite: false
+      color: i === 0 ? "#ffb29a" : "#b9b0ff",
+      transparent: true, opacity: 0.58, depthTest: false, depthWrite: false
     });
-    const core = new THREE.Mesh(new THREE.CircleGeometry(0.035, 24), coreMaterial);
+    const core = new THREE.Mesh(new THREE.CircleGeometry(0.055, 28), coreMaterial);
     core.rotation.x = -Math.PI / 2;
     core.position.y = 0.209;
     core.renderOrder = 21;
@@ -282,20 +286,20 @@ function buildAmbientParticles() {
 }
 function makeTerminal(color = "#b8c3d2") {
   const group = new THREE.Group();
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.13, 16), mat("#aeb9c8", 0.24, 0.72));
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.14, 20), mat("#aeb9c8", 0.2, 0.86));
   stem.position.y = 0.045; group.add(stem);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(terminalRadius, 24, 16), mat(color, 0.2, 0.32));
-  cap.position.y = 0.115; cap.castShadow = true; group.add(cap);
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.027, 16, 12), mat("#ffffff", 0.16, 0.18));
-  core.position.y = 0.18; group.add(core);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.068, 28, 18), mat(color, 0.17, 0.42));
+  cap.position.y = 0.112; cap.castShadow = true; group.add(cap);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.018, 16, 12), mat("#ffffff", 0.12, 0.2));
+  core.position.set(-0.016, 0.135, -0.02); group.add(core);
   return group;
 }
 function componentMaterials(type) {
-  if (type === "led") return { body: mat("#e9878c", 0.2), dark: mat("#a94e60", 0.27), metal: mat("#bfcbd7", 0.2, 0.78), glass: new THREE.MeshPhysicalMaterial({ color: "#ff9ba1", roughness: 0.09, metalness: 0, transmission: 0.2, thickness: 0.42, clearcoat: 1, clearcoatRoughness: 0.08, emissive: "#681d2a", emissiveIntensity: 0.13 }) };
-  if (type === "resistor") return { body: mat("#f0d7a7", 0.28), dark: mat("#bd955f", 0.34), metal: mat("#c7d0dc", 0.2, 0.78) };
-  if (type === "battery") return { body: mat("#edf1fc", 0.24, 0.18), dark: mat("#8498c8", 0.26, 0.14), metal: mat("#cbd4e0", 0.18, 0.82) };
-  if (type === "switch") return { body: mat("#e4f0e9", 0.3), dark: mat("#72998c", 0.28), metal: mat("#c2ccd7", 0.2, 0.75) };
-  return { body: mat("#aabde0", 0.22, 0.16), dark: mat("#687fa9", 0.28), metal: mat("#c4cfdd", 0.2, 0.78) };
+  if (type === "led") return { body: mat("#b84c60", 0.24), dark: mat("#783344", 0.3), metal: mat("#c8d1dc", 0.18, 0.9), glass: new THREE.MeshPhysicalMaterial({ color: "#ff737f", roughness: 0.08, metalness: 0, transmission: 0.12, thickness: 0.55, clearcoat: 1, clearcoatRoughness: 0.06, emissive: "#7c1527", emissiveIntensity: 0.18 }) };
+  if (type === "resistor") return { body: mat("#e9c995", 0.43), dark: mat("#a77b48", 0.4), metal: mat("#c8d0d9", 0.18, 0.9) };
+  if (type === "battery") return { body: mat("#e8edf7", 0.22, 0.12), dark: mat("#566987", 0.25, 0.32), metal: mat("#cbd4df", 0.16, 0.9) };
+  if (type === "switch") return { body: mat("#dce5e0", 0.36), dark: mat("#455b56", 0.26), metal: mat("#c5ced7", 0.16, 0.9) };
+  return { body: mat("#536d91", 0.25, 0.22), dark: mat("#263c58", 0.24, 0.3), metal: mat("#c5ced8", 0.16, 0.9) };
 }
 function makePartMesh(part, targetGroup = componentGroup, register = true) {
   // Defensive guard: Array.forEach passes (value, index, array), not our optional arguments.
@@ -324,27 +328,32 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     { id: part.type === "battery" ? "minus" : part.type === "led" ? "k" : "b", x: terminalX, z: 0, label: part.type === "led" ? "K" : part.type === "battery" ? "−" : "2" }
   ];
   if (part.type === "led") {
-    cylinderBetween([-0.72, 0.18, 0], [-0.55, 0.58, 0], 0.032, m.metal);
-    cylinderBetween([0.72, 0.18, 0], [0.55, 0.58, 0], 0.032, m.metal);
-    const dome = add(new THREE.SphereGeometry(0.37, 32, 24), m.glass, 0, 0.82, 0);
-    dome.scale.set(0.78, 1.04, 0.78);
-    add(new THREE.CylinderGeometry(0.3, 0.34, 0.2, 32), m.dark, 0, 0.58, 0);
-    add(new THREE.TorusGeometry(0.29, 0.025, 8, 32), mat("#f6c7c8", 0.24), 0, 0.7, 0).rotation.x = Math.PI / 2;
-    add(new THREE.SphereGeometry(0.07, 12, 8), mat("#fff2f2", 0.18), -0.12, 0.99, -0.15);
+    // 5 mm through-hole LED: two separate formed leads, molded flange and rounded epoxy lens.
+    cylinderBetween([-0.72, 0.16, 0], [-0.61, 0.49, 0], 0.021, m.metal);
+    cylinderBetween([0.72, 0.16, 0], [0.61, 0.49, 0], 0.021, m.metal);
+    add(new THREE.CylinderGeometry(0.265, 0.29, 0.11, 40), m.dark, 0, 0.54, 0);
+    add(new THREE.TorusGeometry(0.27, 0.018, 10, 40), mat("#f6c7c8", 0.22, 0.18), 0, 0.59, 0).rotation.x = Math.PI / 2;
+    const dome = add(new THREE.SphereGeometry(0.285, 40, 28), m.glass, 0, 0.78, 0);
+    dome.scale.set(0.92, 1.02, 0.92);
+    add(new THREE.SphereGeometry(0.055, 16, 12), mat("#fff1f2", 0.12), -0.1, 0.91, -0.16);
     dome.userData.isLedDome = true;
     dome.userData.baseScale = dome.scale.clone();
   } else if (part.type === "resistor") {
     cylinderBetween([-0.72, 0.16, 0], [-0.34, 0.4, 0], 0.032, m.metal);
     cylinderBetween([0.34, 0.4, 0], [0.72, 0.16, 0], 0.032, m.metal);
-    add(new THREE.CapsuleGeometry(0.22, 0.42, 5, 16), m.body, 0, 0.43, 0).rotation.z = Math.PI / 2;
-    [-0.2, -0.065, 0.07, 0.2].forEach((x, i) => add(new THREE.CylinderGeometry(0.225, 0.225, 0.055, 24), [mat("#8e6b58"),mat("#c77a56"),mat("#708d72"),mat("#bd9655")][i], x, 0.43, 0).rotation.z = Math.PI / 2);
+    add(new THREE.CapsuleGeometry(0.145, 0.42, 6, 24), m.body, 0, 0.43, 0).rotation.z = Math.PI / 2;
+    [-0.23, -0.075, 0.08, 0.23].forEach((x, i) => {
+      const band = add(new THREE.TorusGeometry(0.137, 0.018, 10, 28), [mat("#6b4b3b"),mat("#c56e4c"),mat("#5c8167"),mat("#b18a43")][i], x, 0.43, 0);
+      band.rotation.y = Math.PI / 2;
+    });
+    add(new THREE.SphereGeometry(0.045, 12, 10), mat("#fff0d9", 0.2), -0.08, 0.54, -0.09);
   } else if (part.type === "battery") {
     // Horizontal 5V cell: the visible end caps match the two electrical terminals.
-    const shell = add(new THREE.CylinderGeometry(0.34, 0.34, 1.22, 48, 1, false), m.body, 0, 0.57, 0);
+    const shell = add(new THREE.CylinderGeometry(0.30, 0.30, 1.22, 56, 1, false), m.body, 0, 0.57, 0);
     shell.rotation.z = Math.PI / 2;
-    const leftCap = add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 48), m.dark, -0.64, 0.57, 0);
+    const leftCap = add(new THREE.CylinderGeometry(0.305, 0.305, 0.10, 48), m.dark, -0.64, 0.57, 0);
     leftCap.rotation.z = Math.PI / 2;
-    const rightCap = add(new THREE.CylinderGeometry(0.345, 0.345, 0.12, 48), m.dark, 0.64, 0.57, 0);
+    const rightCap = add(new THREE.CylinderGeometry(0.305, 0.305, 0.10, 48), m.dark, 0.64, 0.57, 0);
     rightCap.rotation.z = Math.PI / 2;
     const positive = add(new THREE.CylinderGeometry(0.19, 0.19, 0.09, 32), mat("#d9a19b", 0.22, 0.55), -0.735, 0.57, 0);
     positive.rotation.z = Math.PI / 2;
@@ -370,23 +379,36 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     cylinderBetween([-0.72, 0.22, 0], [-0.72, 0.09, 0], 0.028, m.metal);
     cylinderBetween([0.72, 0.22, 0], [0.72, 0.09, 0], 0.028, m.metal);
   } else if (part.type === "switch") {
-    add(new THREE.BoxGeometry(1.0, 0.3, 0.72), m.body, 0, 0.34, 0);
-    add(new THREE.BoxGeometry(0.86, 0.09, 0.58), m.dark, 0, 0.51, 0);
-    const statusLamp = add(new THREE.SphereGeometry(0.065, 16, 12), mat(part.closed ? "#8fe0b4" : "#e6b8a9", 0.2), 0, 0.59, 0.22);
-    statusLamp.material.emissive = new THREE.Color(part.closed ? "#54c98a" : "#b86c60");
-    statusLamp.material.emissiveIntensity = part.closed ? 0.8 : 0.12;
-    const lever = add(new THREE.BoxGeometry(0.54, 0.11, 0.14), m.metal, part.closed ? 0.08 : 0, 0.7, part.closed ? 0 : -0.12);
-    lever.rotation.z = part.closed ? 0 : -0.38;
-    cylinderBetween([-0.72, 0.16, 0], [-0.43, 0.35, 0], 0.032, m.metal);
-    cylinderBetween([0.43, 0.35, 0], [0.72, 0.16, 0], 0.032, m.metal);
+    add(new THREE.BoxGeometry(0.92, 0.26, 0.68), m.body, 0, 0.34, 0);
+    add(new THREE.BoxGeometry(0.78, 0.07, 0.54), m.dark, 0, 0.50, 0);
+    // Four tiny screw heads and a metal pivot make the miniature switch feel assembled.
+    for (const x of [-0.34, 0.34]) for (const z of [-0.22, 0.22]) {
+      const screw = add(new THREE.CylinderGeometry(0.045, 0.045, 0.018, 20), m.metal, x, 0.55, z);
+      screw.rotation.x = Math.PI / 2;
+      add(new THREE.BoxGeometry(0.045, 0.008, 0.008), m.dark, x, 0.562, z);
+    }
+    const statusLamp = add(new THREE.SphereGeometry(0.048, 20, 14), mat(part.closed ? "#78dca8" : "#d68d88", 0.18), 0.25, 0.58, 0.17);
+    statusLamp.material.emissive = new THREE.Color(part.closed ? "#35d28b" : "#a84b4b");
+    statusLamp.material.emissiveIntensity = part.closed ? 1.2 : 0.08;
+    const pivot = add(new THREE.CylinderGeometry(0.105, 0.105, 0.1, 28), m.metal, 0, 0.62, 0);
+    pivot.rotation.x = Math.PI / 2;
+    const lever = add(new THREE.CylinderGeometry(0.075, 0.095, 0.47, 24), mat("#e5eaf1", 0.18, 0.62), part.closed ? 0.06 : -0.05, 0.82, part.closed ? 0.03 : -0.09);
+    lever.rotation.z = part.closed ? 0.12 : -0.42;
+    add(new THREE.SphereGeometry(0.11, 24, 18), mat("#d8e0ea", 0.16, 0.55), part.closed ? 0.11 : -0.14, 0.99, part.closed ? 0.03 : -0.14);
+    cylinderBetween([-0.72, 0.16, 0], [-0.38, 0.32, 0], 0.022, m.metal);
+    cylinderBetween([0.38, 0.32, 0], [0.72, 0.16, 0], 0.022, m.metal);
   } else if (part.type === "capacitor") {
-    add(new THREE.CylinderGeometry(0.34, 0.34, 0.9, 40), m.body, 0, 0.59, 0);
-    add(new THREE.CylinderGeometry(0.35, 0.35, 0.09, 40), m.dark, 0, 1.05, 0);
-    add(new THREE.CircleGeometry(0.25, 32), mat("#e4eafa", 0.25), 0, 1.101, 0).rotation.x = -Math.PI / 2;
-    const plusV = add(new THREE.BoxGeometry(0.24, 0.018, 0.045), mat("#f8fbff", 0.25), 0, 1.115, 0);
-    add(new THREE.BoxGeometry(0.045, 0.018, 0.24), mat("#f8fbff", 0.25), 0, 1.115, 0);
-    cylinderBetween([-0.72, 0.16, 0], [-0.25, 0.4, 0], 0.032, m.metal);
-    cylinderBetween([0.25, 0.4, 0], [0.72, 0.16, 0], 0.032, m.metal);
+    // Aluminum electrolytic can, rolled top rim, vent cross and polarity stripe.
+    add(new THREE.CylinderGeometry(0.285, 0.30, 0.84, 48, 1, false), m.body, 0, 0.62, 0);
+    add(new THREE.CylinderGeometry(0.30, 0.30, 0.055, 48), m.dark, 0, 1.06, 0);
+    add(new THREE.TorusGeometry(0.285, 0.018, 10, 48), mat("#d5dce7", 0.18, 0.8), 0, 1.09, 0);
+    add(new THREE.CircleGeometry(0.245, 40), mat("#aab7c9", 0.24, 0.45), 0, 1.091, 0).rotation.x = -Math.PI / 2;
+    add(new THREE.BoxGeometry(0.19, 0.012, 0.028), mat("#eef2f7", 0.15, 0.2), 0, 1.105, 0);
+    add(new THREE.BoxGeometry(0.028, 0.012, 0.19), mat("#eef2f7", 0.15, 0.2), 0, 1.105, 0);
+    // Pale polarity stripe down the sleeve.
+    add(new THREE.BoxGeometry(0.055, 0.57, 0.012), mat("#e8edf5", 0.3), -0.16, 0.62, 0.294);
+    cylinderBetween([-0.72, 0.16, 0], [-0.27, 0.37, 0], 0.021, m.metal);
+    cylinderBetween([0.27, 0.37, 0], [0.72, 0.16, 0], 0.021, m.metal);
   }
   terminals.forEach((terminal) => {
     const t = makeTerminal(terminal.id === "plus" || terminal.id === "a" ? "#e6a09b" : "#91a9d7");
@@ -411,6 +433,41 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
   return root;
 }
 function snap(value, step = 0.36, origin = 0) { return origin + Math.round((value - origin) / step) * step; }
+function rebuildBoardSize(width, depth) {
+  boardWidth = width;
+  boardDepth = depth;
+  const oldChildren = [...boardGroup.children];
+  oldChildren.forEach((object) => {
+    object.traverse((child) => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          if (material.map) material.map.dispose();
+          material.dispose();
+        });
+      }
+    });
+  });
+  boardGroup.clear();
+  gridGroup = new THREE.Group();
+  boardGroup.add(gridGroup);
+  buildBoard();
+  buildPlacementTargets();
+  gridGroup.visible = showGrid;
+  const bounds = boardBounds();
+  parts.forEach((part) => {
+    part.x = THREE.MathUtils.clamp(part.x, bounds.minX, bounds.maxX);
+    part.z = THREE.MathUtils.clamp(part.z, bounds.minZ, bounds.maxZ);
+  });
+  const maxSize = Math.max(boardWidth, boardDepth);
+  camera.position.set(maxSize * 0.88, maxSize * 0.92, maxSize * 1.04);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  rebuildAll();
+  save();
+}
+
 function getCanvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -430,9 +487,10 @@ function hitBoard(event, shouldSnap = true) {
   if (!raycaster.ray.intersectPlane(boardPlane, hit)) return null;
   // A release inside the visible work surface always resolves to the nearest
   // valid board cell rather than silently failing on a perspective edge.
-  hit.x = THREE.MathUtils.clamp(hit.x, -5.4, 5.4);
-  hit.z = THREE.MathUtils.clamp(hit.z, -3.24, 3.24);
-  return { x: shouldSnap ? snap(hit.x, 0.36, -5.4) : hit.x, z: shouldSnap ? snap(hit.z, 0.36, -3.24) : hit.z };
+  const bounds = boardBounds();
+  hit.x = THREE.MathUtils.clamp(hit.x, bounds.minX, bounds.maxX);
+  hit.z = THREE.MathUtils.clamp(hit.z, bounds.minZ, bounds.maxZ);
+  return { x: shouldSnap ? snap(hit.x, 0.36, bounds.minX) : hit.x, z: shouldSnap ? snap(hit.z, 0.36, bounds.minZ) : hit.z };
 }
 function terminalWorldPosition(part, terminalId) {
   const object = componentObjects.get(part.id);
@@ -763,6 +821,17 @@ function bindUI() {
     showGrid = !showGrid; gridGroup.visible = showGrid;
     $("gridToggleButton").setAttribute("aria-pressed", String(showGrid));
   });
+  const boardSizeControl = $("boardSizeControl");
+  if (boardSizeControl) {
+    const currentKey = Object.keys(BOARD_SIZES).find((key) => BOARD_SIZES[key][0] === boardWidth && BOARD_SIZES[key][1] === boardDepth) || "compact";
+    boardSizeControl.value = currentKey;
+    boardSizeControl.addEventListener("change", () => {
+      const size = BOARD_SIZES[boardSizeControl.value];
+      if (!size) return;
+      rebuildBoardSize(size[0], size[1]);
+      result("", "Размер платы изменён", "Рабочая область расширена. Установленные детали и провода сохранены, детали у края сдвинуты внутрь платы.");
+    });
+  }
   $("rotatePartButton").addEventListener("click", () => {
     const part = parts.find((item) => item.id === selectedPartId);
     if (!part) return;
@@ -1023,7 +1092,7 @@ function autoBuild() {
   result("", "Пример установлен", "Готовая цепь уже собрана. Нажми «Запустить схему», чтобы включить светодиод и увидеть движение тока.");
 }
 function save() {
-  try { localStorage.setItem(storageKey, JSON.stringify({ version: 1, parts, wires, nextId, voltage, resistance })); }
+  try { localStorage.setItem(storageKey, JSON.stringify({ version: 1, parts, wires, nextId, voltage, resistance, boardWidth, boardDepth })); }
   catch (error) { console.warn("GLITCH LAB: не удалось сохранить 3D-схему", error); }
 }
 function restore() {
@@ -1034,8 +1103,10 @@ function restore() {
     if (!data || !Array.isArray(data.parts) || !Array.isArray(data.wires)) return;
     voltage = [3,5,9,12].includes(Number(data.voltage)) ? Number(data.voltage) : 5;
     resistance = [100,220,330,1000].includes(Number(data.resistance)) ? Number(data.resistance) : 220;
+    const savedSize = Object.values(BOARD_SIZES).find(([w, d]) => w === Number(data.boardWidth) && d === Number(data.boardDepth));
+    if (savedSize) { boardWidth = savedSize[0]; boardDepth = savedSize[1]; }
     parts = data.parts.filter((part) => part && palette[part.type] && typeof part.id === "string").slice(0, 25).map((part) => ({
-      id: part.id, type: part.type, x: THREE.MathUtils.clamp(Number(part.x) || 0, -5.2, 5.2), z: THREE.MathUtils.clamp(Number(part.z) || 0, -3.1, 3.1),
+      id: part.id, type: part.type, x: THREE.MathUtils.clamp(Number(part.x) || 0, boardBounds().minX, boardBounds().maxX), z: THREE.MathUtils.clamp(Number(part.z) || 0, boardBounds().minZ, boardBounds().maxZ),
       rotation: Number(part.rotation) || 0, closed: Boolean(part.closed), lit: false
     }));
     const valid = new Set(parts.flatMap((part) => [keyFor(part.id, part.type === "battery" ? "plus" : "a"), keyFor(part.id, part.type === "battery" ? "minus" : part.type === "led" ? "k" : "b")]));
@@ -1059,9 +1130,9 @@ function animate() {
   if (placementTargets?.visible) {
     placementTargets.userData.contactMarkers.forEach((marker) => {
       const pulse = 0.5 + 0.5 * Math.sin(time * 4.2 + marker.userData.phase);
-      marker.userData.ring.material.opacity = 0.12 + pulse * 0.36;
-      marker.userData.core.material.opacity = 0.28 + pulse * 0.62;
-      const scale = 0.9 + pulse * 0.18;
+      marker.userData.ring.material.opacity = 0.48 + pulse * 0.48;
+      marker.userData.core.material.opacity = 0.68 + pulse * 0.30;
+      const scale = 0.92 + pulse * 0.22;
       marker.userData.ring.scale.setScalar(scale);
       marker.userData.core.scale.setScalar(scale);
     });

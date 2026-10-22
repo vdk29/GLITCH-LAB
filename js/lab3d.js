@@ -25,6 +25,7 @@ let selectedPartId = null;
 let isPaletteDragging = false;
 let palettePointer = null;
 let dragGhost = null;
+let dragPreviewRenderer = null;
 let showGrid = true;
 let voltage = 5;
 let resistance = 220;
@@ -155,7 +156,7 @@ function buildBoard() {
   const holeInner = mat("#466e61", 0.72);
   const holePositions = [];
   for (let x = -5.4; x <= 5.401; x += 0.36) {
-    for (let z = -3.35; z <= 3.351; z += 0.36) holePositions.push([x, z]);
+    for (let z = -3.24; z <= 3.241; z += 0.36) holePositions.push([x, z]);
   }
   const ringInstances = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.064, 0.064, 0.018, 12), holeMat, holePositions.length);
   const holeInstances = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.033, 0.033, 0.02, 12), holeInner, holePositions.length);
@@ -190,7 +191,7 @@ function buildBoard() {
     const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.151, -3.4), new THREE.Vector3(x, 0.151, 3.4)]);
     gridGroup.add(new THREE.Line(geometry, gridMaterial));
   }
-  for (let z = -3.35; z <= 3.351; z += 0.72) {
+  for (let z = -3.24; z <= 3.241; z += 0.72) {
     const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-5.4, 0.151, z), new THREE.Vector3(5.4, 0.151, z)]);
     gridGroup.add(new THREE.Line(geometry, gridMaterial));
   }
@@ -234,7 +235,7 @@ function componentMaterials(type) {
   if (type === "switch") return { body: mat("#dfe7e4", 0.4), dark: mat("#7f9e94", 0.35), metal: mat("#b8c2ce", 0.23, 0.65) };
   return { body: mat("#9eafd2", 0.24, 0.12), dark: mat("#7186b5", 0.3), metal: mat("#b9c2ce", 0.23, 0.7) };
 }
-function makePartMesh(part) {
+function makePartMesh(part, targetGroup = componentGroup, register = true) {
   const root = new THREE.Group();
   root.userData.partId = part.id;
   const m = componentMaterials(part.type);
@@ -253,7 +254,7 @@ function makePartMesh(part) {
   const haloColor = part.type === "led" ? "#f5c4c6" : part.type === "resistor" ? "#f0d7ad" : part.type === "battery" ? "#cbd5f5" : part.type === "switch" ? "#c6e4d8" : "#d2d9f4";
   add(new THREE.CylinderGeometry(part.type === "battery" ? 0.63 : 0.57, part.type === "battery" ? 0.67 : 0.61, 0.075, 48), mat("#f9fbff", 0.32, 0.12), 0, 0.205, 0).scale.set(1, 1, 0.72);
   add(new THREE.TorusGeometry(part.type === "battery" ? 0.61 : 0.55, 0.022, 10, 48), mat(haloColor, 0.28, 0.16), 0, 0.25, 0).rotation.x = Math.PI / 2;
-  const terminalX = part.type === "battery" ? 0.85 : part.type === "capacitor" ? 0.5 : 0.66;
+  const terminalX = 0.72;
   const terminals = [
     { id: part.type === "battery" ? "plus" : "a", x: -terminalX, z: 0, label: part.type === "led" ? "A" : part.type === "battery" ? "+" : "1" },
     { id: part.type === "battery" ? "minus" : part.type === "led" ? "k" : "b", x: terminalX, z: 0, label: part.type === "led" ? "K" : part.type === "battery" ? "−" : "2" }
@@ -325,12 +326,14 @@ function makePartMesh(part) {
     }
   });
   root.userData.partId = part.id;
-  componentGroup.add(root);
-  componentObjects.set(part.id, root);
-  root.traverse((obj) => { if (obj.userData.kind === "terminal") terminalObjects.push(obj); });
+  targetGroup.add(root);
+  if (register) {
+    componentObjects.set(part.id, root);
+    root.traverse((obj) => { if (obj.userData.kind === "terminal") terminalObjects.push(obj); });
+  }
   return root;
 }
-function snap(value, step = 0.36) { return Math.round(value / step) * step; }
+function snap(value, step = 0.36, origin = 0) { return origin + Math.round((value - origin) / step) * step; }
 function getCanvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -343,8 +346,8 @@ function hitBoard(event, shouldSnap = true) {
   const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.14);
   const hit = new THREE.Vector3();
   if (!raycaster.ray.intersectPlane(floor, hit)) return null;
-  if (Math.abs(hit.x) > 5.35 || Math.abs(hit.z) > 3.35) return null;
-  return { x: shouldSnap ? snap(hit.x) : hit.x, z: shouldSnap ? snap(hit.z) : hit.z };
+  if (Math.abs(hit.x) > 5.4 || Math.abs(hit.z) > 3.24) return null;
+  return { x: shouldSnap ? snap(hit.x, 0.36, -5.4) : hit.x, z: shouldSnap ? snap(hit.z, 0.36, -3.24) : hit.z };
 }
 function terminalWorldPosition(part, terminalId) {
   const object = componentObjects.get(part.id);
@@ -353,7 +356,6 @@ function terminalWorldPosition(part, terminalId) {
   if (!terminal) return null;
   const position = new THREE.Vector3();
   terminal.getWorldPosition(position);
-  position.y += 0.25;
   return position;
 }
 function keyFor(partId, terminalId) { return partId + ":" + terminalId; }
@@ -387,6 +389,35 @@ function placePending(event) {
   addPart(type, position);
   return true;
 }
+function createComponentPreview(type) {
+  const previewCanvas = document.createElement("canvas");
+  previewCanvas.width = 144; previewCanvas.height = 144;
+  previewCanvas.className = "component-preview-canvas";
+  const previewScene = new THREE.Scene();
+  const previewRenderer = new THREE.WebGLRenderer({ canvas: previewCanvas, alpha: true, antialias: true, powerPreference: "low-power" });
+  previewRenderer.setPixelRatio(1.5);
+  previewRenderer.setSize(144, 144, false);
+  previewRenderer.setClearColor(0x000000, 0);
+  previewRenderer.outputColorSpace = THREE.SRGBColorSpace;
+  previewRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  previewRenderer.toneMappingExposure = 1.15;
+  previewScene.add(new THREE.HemisphereLight(0xffffff, 0xd5d9e8, 2.4));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
+  keyLight.position.set(-3, 6, 4);
+  previewScene.add(keyLight);
+  const rimLight = new THREE.DirectionalLight(0xd7dcff, 1.6);
+  rimLight.position.set(4, 2, -4);
+  previewScene.add(rimLight);
+  const previewRoot = makePartMesh({ id: "preview-" + type, type, x: 0, z: 0, rotation: -0.18, closed: false }, previewScene, false);
+  previewRoot.scale.setScalar(type === "battery" || type === "capacitor" ? 0.68 : 0.82);
+  const previewCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 30);
+  previewCamera.position.set(3.7, 3.1, 4.4);
+  previewCamera.lookAt(0, 0.7, 0);
+  previewRenderer.render(previewScene, previewCamera);
+  dragPreviewRenderer = previewRenderer;
+  return previewCanvas;
+}
+
 function bindUI() {
   const fullButton = $("fullViewButton");
   fullButton?.addEventListener("click", () => {
@@ -405,11 +436,11 @@ function bindUI() {
       placementType = button.dataset.place;
       dragGhost = document.createElement("div");
       dragGhost.className = "dragging-component-ghost ghost-" + button.dataset.place;
-      const iconArt = button.querySelector(".pick-art");
-      if (iconArt) dragGhost.appendChild(iconArt.cloneNode(true));
       dragGhost.style.left = event.clientX + "px";
       dragGhost.style.top = event.clientY + "px";
       dragGhost.setAttribute("aria-hidden", "true");
+      const previewCanvas = createComponentPreview(button.dataset.place);
+      dragGhost.appendChild(previewCanvas);
       document.body.appendChild(dragGhost);
       button.classList.add("is-pending");
     });
@@ -437,6 +468,7 @@ function bindUI() {
       palettePointer = null;
       isPaletteDragging = false;
       dragGhost?.remove(); dragGhost = null;
+      if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer = null; }
       canvas.style.cursor = "";
       $("sceneDropHint").classList.remove("visible");
       if (drag.moved) {

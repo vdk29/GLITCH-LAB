@@ -218,35 +218,51 @@ function buildBoard() {
   }
 }
 function buildPlacementTargets() {
+  // Only two contacts are shown: the pair belonging to the component being held.
+  // The pair moves with the snapped placement position instead of lighting the whole board.
   placementTargets = new THREE.Group();
   placementTargets.visible = false;
-  const positions = [];
-  for (let x = -5.4; x <= 5.401; x += 0.36) {
-    for (let z = -3.24; z <= 3.241; z += 0.36) positions.push([x, z]);
+  placementTargets.userData.contactMarkers = [];
+  for (let i = 0; i < 2; i++) {
+    const marker = new THREE.Group();
+    const haloMaterial = new THREE.MeshBasicMaterial({
+      color: i === 0 ? "#f2ad91" : "#a9a0f1",
+      transparent: true, opacity: 0.12, depthTest: false, depthWrite: false
+    });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.105, 0.012, 10, 32), haloMaterial);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.205;
+    ring.renderOrder = 20;
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color: i === 0 ? "#f2ad91" : "#a9a0f1",
+      transparent: true, opacity: 0.25, depthTest: false, depthWrite: false
+    });
+    const core = new THREE.Mesh(new THREE.CircleGeometry(0.035, 24), coreMaterial);
+    core.rotation.x = -Math.PI / 2;
+    core.position.y = 0.209;
+    core.renderOrder = 21;
+    marker.add(ring, core);
+    marker.userData.ring = ring;
+    marker.userData.core = core;
+    marker.userData.phase = i * 1.35;
+    placementTargets.userData.contactMarkers.push(marker);
+    placementTargets.add(marker);
   }
-  // High-contrast placement guides: always render above the PCB, even while
-  // the dragged component casts shadows or overlaps the board.
-  const haloMat = new THREE.MeshBasicMaterial({ color: "#f0a86e", transparent: true, opacity: 1, depthTest: false, depthWrite: false });
-  const innerMat = new THREE.MeshBasicMaterial({ color: "#8b83dc", transparent: true, opacity: 1, depthTest: false, depthWrite: false });
-  const haloInstances = new THREE.InstancedMesh(new THREE.TorusGeometry(0.135, 0.024, 10, 24), haloMat, positions.length);
-  const dotInstances = new THREE.InstancedMesh(new THREE.CircleGeometry(0.047, 20), innerMat, positions.length);
-  const transform = new THREE.Object3D();
-  positions.forEach(([x, z], i) => {
-    transform.position.set(x, 0.225, z); transform.rotation.set(Math.PI / 2, 0, 0); transform.updateMatrix();
-    haloInstances.setMatrixAt(i, transform.matrix);
-    transform.position.set(x, 0.229, z); transform.rotation.set(-Math.PI / 2, 0, 0); transform.updateMatrix();
-    dotInstances.setMatrixAt(i, transform.matrix);
-  });
-  haloInstances.instanceMatrix.needsUpdate = true;
-  dotInstances.instanceMatrix.needsUpdate = true;
-  haloInstances.renderOrder = 20;
-  dotInstances.renderOrder = 21;
-  placementTargets.add(haloInstances, dotInstances);
   boardGroup.add(placementTargets);
 }
 function setPlacementTargets(visible) {
   if (!placementTargets) return;
   placementTargets.visible = Boolean(visible);
+}
+function updatePlacementTargets(event) {
+  if (!placementTargets || !event) return;
+  const snapped = hitBoard(event);
+  if (!snapped) return;
+  placementTargets.position.set(snapped.x, 0, snapped.z);
+  placementTargets.userData.contactMarkers.forEach((marker, index) => {
+    marker.position.set(index === 0 ? -0.72 : 0.72, 0, 0);
+  });
+  placementTargets.visible = true;
 }
 
 function buildAmbientParticles() {
@@ -487,6 +503,29 @@ function createComponentPreview(type) {
   rimLight.position.set(4, 2, -4);
   previewScene.add(rimLight);
   const previewRoot = makePartMesh({ id: "preview-" + type, type, x: 0, z: 0, rotation: -0.18, closed: false }, previewScene, false);
+  // Subtle contact glows make the two insertion ends readable while the part is held.
+  [-0.72, 0.72].forEach((x, index) => {
+    const glow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.065, 18, 12),
+      new THREE.MeshBasicMaterial({
+        color: index === 0 ? "#ffd0b7" : "#d2ccff",
+        transparent: true, opacity: 0.82, depthWrite: false
+      })
+    );
+    glow.position.set(x, 0.13, 0);
+    glow.renderOrder = 30;
+    previewRoot.add(glow);
+    const aura = new THREE.Mesh(
+      new THREE.SphereGeometry(0.105, 18, 12),
+      new THREE.MeshBasicMaterial({
+        color: index === 0 ? "#f5b89e" : "#bcb4ff",
+        transparent: true, opacity: 0.22, depthWrite: false
+      })
+    );
+    aura.position.copy(glow.position);
+    aura.renderOrder = 29;
+    previewRoot.add(aura);
+  });
   previewRoot.scale.setScalar(type === "battery" || type === "capacitor" ? 0.68 : 0.82);
   const previewCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 30);
   previewCamera.position.set(3.7, 3.1, 4.4);
@@ -525,13 +564,9 @@ function bindUI() {
       dragGhost.style.left = event.clientX + "px";
       dragGhost.style.top = event.clientY + "px";
       dragGhost.setAttribute("aria-hidden", "true");
-      const art = button.querySelector(".pick-art");
-      if (art) dragGhost.appendChild(art.cloneNode(true));
-      const title = document.createElement("span");
-      title.textContent = palette[button.dataset.place]?.title || "Компонент";
-      title.style.cssText = "font:700 12px system-ui;color:#59647a;white-space:nowrap";
-      dragGhost.appendChild(title);
-      dragGhost.style.cssText += ";display:flex;gap:9px;width:auto;min-width:112px;height:60px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.97);align-items:center;justify-content:flex-start;border:1px solid #dddaf4;box-shadow:0 12px 30px rgba(70,70,110,.18);pointer-events:none;z-index:99999";
+      // Render the exact same 3D mesh used on the board, not a catalog icon or label.
+      const preview = createComponentPreview(button.dataset.place);
+      dragGhost.appendChild(preview);
       document.body.appendChild(dragGhost);
       button.classList.add("is-pending");
     });
@@ -548,9 +583,10 @@ function bindUI() {
       const rect = viewport.getBoundingClientRect();
       const overBoard = event.clientX >= rect.left && event.clientX <= rect.right &&
         event.clientY >= rect.top && event.clientY <= rect.bottom;
+      if (overBoard) updatePlacementTargets(event);
       setPlacementTargets(overBoard);
-      $("sceneDropHint").classList.toggle("visible", overBoard);
-      $("sceneHint").textContent = overBoard ? "Отпусти компонент — места установки отмечены" : "Перенеси компонент на плату";
+      $("sceneDropHint").classList.toggle("visible", false);
+      $("sceneHint").textContent = overBoard ? "Два контакта детали совмещаются с подсвеченными точками" : "Перенеси компонент на плату";
       palettePointer.button.classList.add("is-pending");
       canvas.style.cursor = overBoard ? "copy" : "";
     }
@@ -1012,6 +1048,16 @@ function animate() {
   requestAnimationFrame(animate);
   if (!renderer || !scene || !camera) return;
   const time = performance.now() * 0.001;
+  if (placementTargets?.visible) {
+    placementTargets.userData.contactMarkers.forEach((marker) => {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 4.2 + marker.userData.phase);
+      marker.userData.ring.material.opacity = 0.12 + pulse * 0.36;
+      marker.userData.core.material.opacity = 0.28 + pulse * 0.62;
+      const scale = 0.9 + pulse * 0.18;
+      marker.userData.ring.scale.setScalar(scale);
+      marker.userData.core.scale.setScalar(scale);
+    });
+  }
   if (currentActive) {
     activeFlowDots.forEach((dot) => {
       const curve = dot.userData.flowCurve;

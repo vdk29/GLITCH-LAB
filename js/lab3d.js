@@ -493,13 +493,22 @@ function bindUI() {
       canvas.style.cursor = "copy";
     }
   });
+  window.addEventListener("pointercancel", () => {
+    if (!palettePointer) return;
+    palettePointer = null; placementType = null; isPaletteDragging = false;
+    dragGhost?.remove(); dragGhost = null;
+    if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer.forceContextLoss(); dragPreviewRenderer = null; }
+    $("sceneDropHint").classList.remove("visible");
+    document.querySelectorAll(".component-pick").forEach((item) => item.classList.remove("is-pending"));
+    canvas.style.cursor = "";
+  });
   window.addEventListener("pointerup", (event) => {
     if (palettePointer) {
       const drag = palettePointer;
       palettePointer = null;
       isPaletteDragging = false;
       dragGhost?.remove(); dragGhost = null;
-      if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer = null; }
+      if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer.forceContextLoss(); dragPreviewRenderer = null; }
       canvas.style.cursor = "";
       $("sceneDropHint").classList.remove("visible");
       if (drag.moved) {

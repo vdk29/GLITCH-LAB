@@ -43,7 +43,7 @@ let ambientParticles = [];
 
 const boardWidth = 12;
 const boardDepth = 8;
-const terminalRadius = 0.145;
+const terminalRadius = 0.09;
 
 function init() {
   try {
@@ -147,6 +147,16 @@ function buildBoard() {
   pcb.position.y = 0; pcb.castShadow = true; pcb.receiveShadow = true; boardGroup.add(pcb);
   const inset = new THREE.Mesh(new THREE.BoxGeometry(boardWidth - 0.22, 0.018, boardDepth - 0.22), mat("#bad7ca", 0.85));
   inset.position.y = 0.118; boardGroup.add(inset);
+  const boardRim = new THREE.Mesh(new THREE.BoxGeometry(boardWidth + 0.08, 0.055, boardDepth + 0.08), mat("#8eafa0", 0.48, 0.08));
+  boardRim.position.y = -0.035; boardRim.castShadow = true; boardRim.receiveShadow = true; boardGroup.add(boardRim);
+  const powerRailRed = mat("#df9296", 0.58);
+  const powerRailBlue = mat("#8ba7dc", 0.58);
+  for (const z of [-3.0, 3.0]) {
+    const railA = new THREE.Mesh(new THREE.BoxGeometry(boardWidth - 0.5, 0.022, 0.055), powerRailRed);
+    railA.position.set(0, 0.151, z - 0.065); boardGroup.add(railA);
+    const railB = new THREE.Mesh(new THREE.BoxGeometry(boardWidth - 0.5, 0.022, 0.055), powerRailBlue);
+    railB.position.set(0, 0.151, z + 0.065); boardGroup.add(railB);
+  }
   const edgeMat = mat("#8db6a4", 0.65);
   for (const x of [-boardWidth / 2 + 0.08, boardWidth / 2 - 0.08]) {
     const rail = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.03, boardDepth - 0.5), edgeMat);
@@ -220,12 +230,12 @@ function buildAmbientParticles() {
 }
 function makeTerminal(color = "#b8c3d2") {
   const group = new THREE.Group();
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.2, 12), mat("#9ba9b7", 0.28, 0.55));
-  stem.position.y = 0.12; group.add(stem);
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(terminalRadius, 18, 12), mat(color, 0.24, 0.25));
-  cap.position.y = 0.23; cap.castShadow = true; group.add(cap);
-  const core = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), mat("#f8fbff", 0.2, 0.15));
-  core.position.y = 0.31; group.add(core);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.13, 16), mat("#aeb9c8", 0.24, 0.72));
+  stem.position.y = 0.045; group.add(stem);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(terminalRadius, 24, 16), mat(color, 0.2, 0.32));
+  cap.position.y = 0.115; cap.castShadow = true; group.add(cap);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.027, 16, 12), mat("#ffffff", 0.16, 0.18));
+  core.position.y = 0.18; group.add(core);
   return group;
 }
 function componentMaterials(type) {
@@ -356,6 +366,7 @@ function terminalWorldPosition(part, terminalId) {
   if (!terminal) return null;
   const position = new THREE.Vector3();
   terminal.getWorldPosition(position);
+  position.y += 0.115;
   return position;
 }
 function keyFor(partId, terminalId) { return partId + ":" + terminalId; }
@@ -414,6 +425,13 @@ function createComponentPreview(type) {
   previewCamera.position.set(3.7, 3.1, 4.4);
   previewCamera.lookAt(0, 0.7, 0);
   previewRenderer.render(previewScene, previewCamera);
+  previewScene.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.geometry?.dispose();
+      const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+      materials.forEach((material) => { if (material?.map) material.map.dispose(); material?.dispose(); });
+    }
+  });
   dragPreviewRenderer = previewRenderer;
   return previewCanvas;
 }

@@ -18,7 +18,7 @@
     }
   </script>
   <script src="js/app.js" defer></script>
-  <script type="module" src="js/lab3d.js?v=20261022-8"></script>
+  <script type="module" src="js/lab3d.js?v=20261022-9"></script>
 </head>
 <body class="lab3d-body">
   <header class="topbar">
@@ -52,6 +52,7 @@
           <div class="scene-tools">
             <button type="button" class="scene-tool" id="viewResetButton" title="Вернуть исходный ракурс">↗ <span>Ракурс</span></button>
             <button type="button" class="scene-tool" id="gridToggleButton" aria-pressed="true">▦ <span>Сетка</span></button>
+            <label class="board-size-tool" title="Изменить размер рабочей платы"><span>Плата</span><select id="boardSizeControl" aria-label="Размер платы"><option value="compact">12 × 8</option><option value="studio">15,6 × 10</option><option value="xl">18,5 × 12,2</option></select></label>
             <button type="button" class="scene-tool" id="fullViewButton" aria-pressed="false">⛶ <span>На весь экран</span></button>
           </div>
         </div>

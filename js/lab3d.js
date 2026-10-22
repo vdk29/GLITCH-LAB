@@ -206,13 +206,13 @@ function buildBoard() {
   const label = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 0.82), new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide }));
   label.rotation.x = -Math.PI / 2; label.position.set(0, 0.145, boardDepth / 2 - 0.48); boardGroup.add(label);
   const gridMaterial = new THREE.LineBasicMaterial({ color: "#f1fff6", transparent: true, opacity: 0.34 });
-  const bounds = boardBounds();
-  for (let x = bounds.minX; x <= bounds.maxX + 0.001; x += 0.72) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.151, bounds.minZ - 0.16), new THREE.Vector3(x, 0.151, bounds.maxZ + 0.16)]);
+  const gridBounds = boardBounds();
+  for (let x = gridBounds.minX; x <= gridBounds.maxX + 0.001; x += 0.72) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.151, gridBounds.minZ - 0.16), new THREE.Vector3(x, 0.151, gridBounds.maxZ + 0.16)]);
     gridGroup.add(new THREE.Line(geometry, gridMaterial));
   }
-  for (let z = bounds.minZ; z <= bounds.maxZ + 0.001; z += 0.72) {
-    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(bounds.minX, 0.151, z), new THREE.Vector3(bounds.maxX, 0.151, z)]);
+  for (let z = gridBounds.minZ; z <= gridBounds.maxZ + 0.001; z += 0.72) {
+    const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(gridBounds.minX, 0.151, z), new THREE.Vector3(gridBounds.maxX, 0.151, z)]);
     gridGroup.add(new THREE.Line(geometry, gridMaterial));
   }
   const screwMat = mat("#a9b3c3", 0.25, 0.45);

@@ -365,8 +365,8 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     lens.userData.isLedDome = true;
   } else if (part.type === "resistor") {
     // Axial carbon-film resistor: continuous leads meet the ceramic body at both ends.
-    rod([-0.36, 0.145, 0], [-0.172, 0.265, 0], 0.009, brightSteel, 16);
-    rod([0.36, 0.145, 0], [0.172, 0.265, 0], 0.009, brightSteel, 16);
+    rod([-0.36, 0.145, 0], [-0.145, 0.266, 0], 0.009, brightSteel, 16);
+    rod([0.36, 0.145, 0], [0.145, 0.266, 0], 0.009, brightSteel, 16);
     const body = add(new THREE.CapsuleGeometry(0.047, 0.205, 8, 20), ceramic, 0, 0.266, 0);
     body.rotation.z = Math.PI / 2;
     // Paint bands follow the curved ceramic surface, rather than floating plates.
@@ -432,7 +432,7 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
 
   terminals.forEach((terminal) => {
     const t = makeTerminal(terminal.id === "plus" ? "#d8e1ed" : "#b9c5d2");
-    t.position.set(terminal.x, part.type === "battery" ? 0.41 : 0, terminal.z);
+    t.position.set(terminal.x, part.type === "battery" ? 0.456 : 0, terminal.z);
     t.userData = { kind: "terminal", partId: part.id, terminalId: terminal.id, terminalLabel: terminal.label };
     root.add(t);
   });

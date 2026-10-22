@@ -114,8 +114,10 @@ function init() {
     animate();
   } catch (error) {
     console.error("GLITCH LAB 3D initialization failed:", error);
-    $("sceneLoading").innerHTML = "<strong>Не удалось запустить 3D</strong><small>Проверь подключение к интернету и обнови страницу.</small>";
-    $("engineStatus").textContent = "Не удалось запустить 3D";
+    const detail = error && error.message ? String(error.message) : "Неизвестная ошибка";
+    $("sceneLoading").innerHTML = "<strong>Не удалось запустить 3D</strong><small></small>";
+    $("sceneLoading").querySelector("small").textContent = "Ошибка: " + detail + ". Проверь загрузку Three.js и обнови страницу.";
+    $("engineStatus").textContent = "Ошибка запуска 3D: " + detail;
   }
 }
 
@@ -437,10 +439,17 @@ function addPart(type, position) {
 }
 function placePending(event) {
   if (!placementType) return false;
-  const position = hitBoard(event);
+  let position = hitBoard(event);
+  // If the perspective ray misses near a canvas edge, still place inside the workbench.
   if (!position) {
-    result("warning", "Поставь деталь на плату", "Перенеси компонент внутрь зелёной макетной платы.");
-    return false;
+    const rect = viewport.getBoundingClientRect();
+    const inside = event && event.clientX >= rect.left && event.clientX <= rect.right &&
+      event.clientY >= rect.top && event.clientY <= rect.bottom;
+    if (inside) position = { x: 0, z: 0 };
+    else {
+      result("warning", "Поставь деталь на плату", "Отпусти компонент внутри области 3D-платы.");
+      return false;
+    }
   }
   const type = placementType;
   placementType = null; isPaletteDragging = false;
@@ -501,21 +510,16 @@ function bindUI() {
       if (event.button !== undefined && event.button !== 0) return;
       event.preventDefault();
       palettePointer = { type: button.dataset.place, x: event.clientX, y: event.clientY, moved: false, button, pointerId: event.pointerId };
-      try { button.setPointerCapture(event.pointerId); } catch (_) {}
+      // Avoid pointer capture: on desktop it can retarget the release to the catalog button.
       placementType = button.dataset.place;
       dragGhost = document.createElement("div");
       dragGhost.className = "dragging-component-ghost ghost-" + button.dataset.place;
       dragGhost.style.left = event.clientX + "px";
       dragGhost.style.top = event.clientY + "px";
       dragGhost.setAttribute("aria-hidden", "true");
-      try {
-        const previewCanvas = createComponentPreview(button.dataset.place);
-        dragGhost.appendChild(previewCanvas);
-      } catch (previewError) {
-        console.warn("GLITCH LAB: 3D drag preview unavailable; using a simple fallback", previewError);
-        dragGhost.textContent = palette[button.dataset.place]?.title || "Компонент";
-        dragGhost.style.cssText += ";width:92px;height:54px;padding:8px;border-radius:14px;background:#fff;color:#59647a;font:600 12px system-ui;justify-content:center;align-items:center;border:1px solid #dddaf4;box-shadow:0 12px 30px rgba(70,70,110,.18)";
-      }
+      // Lightweight drag ghost avoids allocating a second WebGL context for every drag.
+      dragGhost.textContent = palette[button.dataset.place]?.title || "Компонент";
+      dragGhost.style.cssText += ";width:112px;height:56px;padding:8px;border-radius:14px;background:rgba(255,255,255,.96);color:#59647a;font:600 12px system-ui;justify-content:center;align-items:center;border:1px solid #dddaf4;box-shadow:0 12px 30px rgba(70,70,110,.18)";
       document.body.appendChild(dragGhost);
       button.classList.add("is-pending");
     });
@@ -542,7 +546,6 @@ function bindUI() {
     if (!palettePointer) return;
     palettePointer = null; placementType = null; isPaletteDragging = false;
     dragGhost?.remove(); dragGhost = null;
-    if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer.forceContextLoss(); dragPreviewRenderer = null; }
     $("sceneDropHint").classList.remove("visible");
     setPlacementTargets(false);
     document.querySelectorAll(".component-pick").forEach((item) => item.classList.remove("is-pending"));

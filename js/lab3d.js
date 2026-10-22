@@ -224,27 +224,29 @@ function buildPlacementTargets() {
   for (let x = -5.4; x <= 5.401; x += 0.36) {
     for (let z = -3.24; z <= 3.241; z += 0.36) positions.push([x, z]);
   }
-  const haloMat = new THREE.MeshBasicMaterial({ color: "#fff4cf", transparent: true, opacity: 0.98, depthWrite: false });
-  const innerMat = new THREE.MeshBasicMaterial({ color: "#e8a85e", transparent: true, opacity: 0.9, depthWrite: false });
-  const haloInstances = new THREE.InstancedMesh(new THREE.TorusGeometry(0.105, 0.018, 8, 20), haloMat, positions.length);
-  const dotInstances = new THREE.InstancedMesh(new THREE.CircleGeometry(0.035, 16), innerMat, positions.length);
+  // High-contrast placement guides: always render above the PCB, even while
+  // the dragged component casts shadows or overlaps the board.
+  const haloMat = new THREE.MeshBasicMaterial({ color: "#f0a86e", transparent: true, opacity: 1, depthTest: false, depthWrite: false });
+  const innerMat = new THREE.MeshBasicMaterial({ color: "#8b83dc", transparent: true, opacity: 1, depthTest: false, depthWrite: false });
+  const haloInstances = new THREE.InstancedMesh(new THREE.TorusGeometry(0.135, 0.024, 10, 24), haloMat, positions.length);
+  const dotInstances = new THREE.InstancedMesh(new THREE.CircleGeometry(0.047, 20), innerMat, positions.length);
   const transform = new THREE.Object3D();
   positions.forEach(([x, z], i) => {
-    transform.position.set(x, 0.174, z); transform.rotation.set(Math.PI / 2, 0, 0); transform.updateMatrix();
+    transform.position.set(x, 0.225, z); transform.rotation.set(Math.PI / 2, 0, 0); transform.updateMatrix();
     haloInstances.setMatrixAt(i, transform.matrix);
-    transform.position.set(x, 0.176, z); transform.rotation.set(-Math.PI / 2, 0, 0); transform.updateMatrix();
+    transform.position.set(x, 0.229, z); transform.rotation.set(-Math.PI / 2, 0, 0); transform.updateMatrix();
     dotInstances.setMatrixAt(i, transform.matrix);
   });
   haloInstances.instanceMatrix.needsUpdate = true;
   dotInstances.instanceMatrix.needsUpdate = true;
+  haloInstances.renderOrder = 20;
+  dotInstances.renderOrder = 21;
   placementTargets.add(haloInstances, dotInstances);
   boardGroup.add(placementTargets);
 }
 function setPlacementTargets(visible) {
-  // Shared by click-to-place and drag-to-place flows. This function was
-  // referenced by the palette handlers but missing, causing a ReferenceError
-  // before placement could reach addPart().
-  if (placementTargets) placementTargets.visible = Boolean(visible);
+  if (!placementTargets) return;
+  placementTargets.visible = Boolean(visible);
 }
 
 function buildAmbientParticles() {
@@ -544,11 +546,14 @@ function bindUI() {
       palettePointer.moved = true;
       isPaletteDragging = true;
       placementType = palettePointer.type;
-      setPlacementTargets(true);
-      $("sceneDropHint").classList.add("visible");
-      $("sceneHint").textContent = "Отпусти компонент над платой";
+      const rect = viewport.getBoundingClientRect();
+      const overBoard = event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= rect.top && event.clientY <= rect.bottom;
+      setPlacementTargets(overBoard);
+      $("sceneDropHint").classList.toggle("visible", overBoard);
+      $("sceneHint").textContent = overBoard ? "Отпусти компонент — места установки отмечены" : "Перенеси компонент на плату";
       palettePointer.button.classList.add("is-pending");
-      canvas.style.cursor = "copy";
+      canvas.style.cursor = overBoard ? "copy" : "";
     }
   });
 

@@ -794,7 +794,8 @@ function clearGroup(group) {
 }
 function rebuildAll() {
   clearGroup(componentGroup); componentObjects.clear(); terminalObjects.length = 0;
-  parts.forEach(makePartMesh);
+  // Do not pass Array.forEach's index/array arguments into makePartMesh's optional parameters.
+  parts.forEach((part) => makePartMesh(part, componentGroup, true));
   rebuildWires();
   $("placedCount").textContent = parts.length + " " + (parts.length === 1 ? "деталь" : parts.length < 5 ? "детали" : "деталей");
   updateMetrics();

@@ -297,10 +297,10 @@ function makeTerminal(color = "#b8c3d2") {
   return group;
 }
 function componentMaterials(type) {
-  if (type === "led") return { body: mat("#b84c60", 0.24), dark: mat("#783344", 0.3), metal: mat("#c8d1dc", 0.18, 0.9), glass: new THREE.MeshPhysicalMaterial({ color: "#ff737f", roughness: 0.08, metalness: 0, transmission: 0.12, thickness: 0.55, clearcoat: 1, clearcoatRoughness: 0.06, emissive: "#7c1527", emissiveIntensity: 0.18 }) };
-  if (type === "resistor") return { body: mat("#e9c995", 0.43), dark: mat("#a77b48", 0.4), metal: mat("#c8d0d9", 0.18, 0.9) };
-  if (type === "battery") return { body: mat("#e8edf7", 0.22, 0.12), dark: mat("#566987", 0.25, 0.32), metal: mat("#cbd4df", 0.16, 0.9) };
-  if (type === "switch") return { body: mat("#dce5e0", 0.36), dark: mat("#455b56", 0.26), metal: mat("#c5ced7", 0.16, 0.9) };
+  if (type === "led") return { body: mat("#a82435", 0.2), dark: mat("#4b1720", 0.26), metal: mat("#b8c2ce", 0.19, 0.92), glass: new THREE.MeshPhysicalMaterial({ color: "#ff263d", roughness: 0.055, metalness: 0, transmission: 0.08, thickness: 0.7, clearcoat: 1, clearcoatRoughness: 0.035, emissive: "#b90020", emissiveIntensity: 0.3 }) };
+  if (type === "resistor") return { body: mat("#d8b68b", 0.62, 0.01), dark: mat("#98734f", 0.5), metal: mat("#c8d0d9", 0.2, 0.88) };
+  if (type === "battery") return { body: mat("#1555a5", 0.24, 0.24), dark: mat("#101c2d", 0.25, 0.35), metal: mat("#d4dce6", 0.17, 0.92) };
+  if (type === "switch") return { body: mat("#171b22", 0.32, 0.14), dark: mat("#090c12", 0.25, 0.22), metal: mat("#c8d0da", 0.16, 0.94) };
   return { body: mat("#536d91", 0.25, 0.22), dark: mat("#263c58", 0.24, 0.3), metal: mat("#c5ced8", 0.16, 0.9) };
 }
 function makePartMesh(part, targetGroup = componentGroup, register = true) {
@@ -333,22 +333,21 @@ function makePartMesh(part, targetGroup = componentGroup, register = true) {
     // 5 mm through-hole LED: two separate formed leads, molded flange and rounded epoxy lens.
     cylinderBetween([-0.72, 0.16, 0], [-0.61, 0.49, 0], 0.021, m.metal);
     cylinderBetween([0.72, 0.16, 0], [0.61, 0.49, 0], 0.021, m.metal);
-    add(new THREE.CylinderGeometry(0.265, 0.29, 0.11, 40), m.dark, 0, 0.54, 0);
-    add(new THREE.TorusGeometry(0.27, 0.018, 10, 40), mat("#f6c7c8", 0.22, 0.18), 0, 0.59, 0).rotation.x = Math.PI / 2;
-    const dome = add(new THREE.SphereGeometry(0.285, 40, 28), m.glass, 0, 0.78, 0);
-    dome.scale.set(0.92, 1.02, 0.92);
-    add(new THREE.SphereGeometry(0.055, 16, 12), mat("#fff1f2", 0.12), -0.1, 0.91, -0.16);
+    add(new THREE.CylinderGeometry(0.17, 0.19, 0.075, 48), m.dark, 0, 0.52, 0);
+    add(new THREE.TorusGeometry(0.177, 0.012, 10, 48), mat("#f6c7c8", 0.18, 0.28), 0, 0.555, 0).rotation.x = Math.PI / 2;
+    const dome = add(new THREE.SphereGeometry(0.19, 48, 32), m.glass, 0, 0.69, 0);
+    dome.scale.set(0.94, 1.16, 0.94);
+    add(new THREE.SphereGeometry(0.024, 18, 12), mat("#fff7f8", 0.08, 0.02), -0.065, 0.77, -0.105);
     dome.userData.isLedDome = true;
     dome.userData.baseScale = dome.scale.clone();
   } else if (part.type === "resistor") {
     cylinderBetween([-0.72, 0.16, 0], [-0.34, 0.4, 0], 0.032, m.metal);
     cylinderBetween([0.34, 0.4, 0], [0.72, 0.16, 0], 0.032, m.metal);
-    add(new THREE.CapsuleGeometry(0.145, 0.42, 6, 24), m.body, 0, 0.43, 0).rotation.z = Math.PI / 2;
-    [-0.23, -0.075, 0.08, 0.23].forEach((x, i) => {
-      const band = add(new THREE.TorusGeometry(0.137, 0.018, 10, 28), [mat("#6b4b3b"),mat("#c56e4c"),mat("#5c8167"),mat("#b18a43")][i], x, 0.43, 0);
+    add(new THREE.CapsuleGeometry(0.105, 0.34, 8, 32), m.body, 0, 0.405, 0).rotation.z = Math.PI / 2;
+    [-0.19, -0.065, 0.065, 0.19].forEach((x, i) => {
+      const band = add(new THREE.TorusGeometry(0.099, 0.012, 10, 32), [mat("#55382b", 0.4),mat("#b96b3e", 0.42),mat("#54714c", 0.4),mat("#b28b42", 0.4)][i], x, 0.405, 0);
       band.rotation.y = Math.PI / 2;
     });
-    add(new THREE.SphereGeometry(0.045, 12, 10), mat("#fff0d9", 0.2), -0.08, 0.54, -0.09);
   } else if (part.type === "battery") {
     // Horizontal 5V cell: the visible end caps match the two electrical terminals.
     const shell = add(new THREE.CylinderGeometry(0.30, 0.30, 1.22, 56, 1, false), m.body, 0, 0.57, 0);

@@ -26,6 +26,7 @@ let isPaletteDragging = false;
 let palettePointer = null;
 let dragGhost = null;
 let dragPreviewRenderer = null;
+let placementTargets = null;
 let showGrid = true;
 let voltage = 5;
 let resistance = 220;
@@ -92,6 +93,7 @@ function init() {
     gridGroup = new THREE.Group();
     boardGroup.add(gridGroup);
     buildBoard();
+    buildPlacementTargets();
     buildAmbientParticles();
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -212,6 +214,30 @@ function buildBoard() {
     const slot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.01, 0.025), mat("#7c8799", 0.4, 0.2));
     slot.position.set(x, 0.031, z); boardGroup.add(slot);
   }
+}
+function buildPlacementTargets() {
+  placementTargets = new THREE.Group();
+  placementTargets.visible = false;
+  const haloMat = new THREE.MeshBasicMaterial({ color: "#fff4cf", transparent: true, opacity: 0.95, depthWrite: false });
+  const innerMat = new THREE.MeshBasicMaterial({ color: "#e8a85e", transparent: true, opacity: 0.82, depthWrite: false });
+  const haloGeo = new THREE.TorusGeometry(0.105, 0.018, 8, 20);
+  const dotGeo = new THREE.CircleGeometry(0.035, 16);
+  for (let x = -5.4; x <= 5.401; x += 0.36) {
+    for (let z = -3.24; z <= 3.241; z += 0.36) {
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.rotation.x = Math.PI / 2;
+      halo.position.set(x, 0.174, z);
+      placementTargets.add(halo);
+      const dot = new THREE.Mesh(dotGeo, innerMat);
+      dot.rotation.x = -Math.PI / 2;
+      dot.position.set(x, 0.176, z);
+      placementTargets.add(dot);
+    }
+  }
+  boardGroup.add(placementTargets);
+}
+function setPlacementTargets(visible) {
+  if (placementTargets) placementTargets.visible = Boolean(visible);
 }
 function buildAmbientParticles() {
   const particleGroup = new THREE.Group();
@@ -365,11 +391,20 @@ function getCanvasPoint(event) {
   return rect;
 }
 function hitBoard(event, shouldSnap = true) {
-  getCanvasPoint(event);
-  const floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.14);
+  // Use the viewport's coordinates: overlays and mobile layout can make the canvas
+  // bounding box differ slightly from the visible drop area.
+  const rect = viewport.getBoundingClientRect();
+  if (!rect.width || !rect.height) return null;
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const boardPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.14);
   const hit = new THREE.Vector3();
-  if (!raycaster.ray.intersectPlane(floor, hit)) return null;
-  if (Math.abs(hit.x) > 5.4 || Math.abs(hit.z) > 3.24) return null;
+  if (!raycaster.ray.intersectPlane(boardPlane, hit)) return null;
+  // A release inside the visible work surface always resolves to the nearest
+  // valid board cell rather than silently failing on a perspective edge.
+  hit.x = THREE.MathUtils.clamp(hit.x, -5.4, 5.4);
+  hit.z = THREE.MathUtils.clamp(hit.z, -3.24, 3.24);
   return { x: shouldSnap ? snap(hit.x, 0.36, -5.4) : hit.x, z: shouldSnap ? snap(hit.z, 0.36, -3.24) : hit.z };
 }
 function terminalWorldPosition(part, terminalId) {
@@ -409,6 +444,7 @@ function placePending(event) {
   const type = placementType;
   placementType = null; isPaletteDragging = false;
   $("sceneDropHint").classList.remove("visible");
+  setPlacementTargets(false);
   document.querySelectorAll(".component-pick").forEach((button) => button.classList.remove("is-pending"));
   addPart(type, position);
   return true;
@@ -487,8 +523,9 @@ function bindUI() {
       palettePointer.moved = true;
       isPaletteDragging = true;
       placementType = palettePointer.type;
+      setPlacementTargets(true);
       $("sceneDropHint").classList.add("visible");
-      $("sceneHint").textContent = "Перенеси деталь вправо на плату и отпусти";
+      $("sceneHint").textContent = "Выбери подсвеченное отверстие на плате";
       document.querySelectorAll(".component-pick").forEach((item) => item.classList.toggle("is-pending", item === palettePointer.button));
       canvas.style.cursor = "copy";
     }
@@ -499,6 +536,7 @@ function bindUI() {
     dragGhost?.remove(); dragGhost = null;
     if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer.forceContextLoss(); dragPreviewRenderer = null; }
     $("sceneDropHint").classList.remove("visible");
+    setPlacementTargets(false);
     document.querySelectorAll(".component-pick").forEach((item) => item.classList.remove("is-pending"));
     canvas.style.cursor = "";
   });
@@ -511,6 +549,7 @@ function bindUI() {
       if (dragPreviewRenderer) { dragPreviewRenderer.dispose(); dragPreviewRenderer.forceContextLoss(); dragPreviewRenderer = null; }
       canvas.style.cursor = "";
       $("sceneDropHint").classList.remove("visible");
+      setPlacementTargets(false);
       if (drag.moved) {
         const rect = canvas.getBoundingClientRect();
         const inside = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
